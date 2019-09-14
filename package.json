@@ -5,7 +5,7 @@
   "main": "truffle-config.js",
   "scripts": {
     "test": "scripts/test.sh",
-    "build": "now ./webapp"
+    "build": "cd webapp && now"
   },
   "repository": {
     "type": "git",
