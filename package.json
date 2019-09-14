@@ -1,0 +1,33 @@
+{
+  "name": "uniswap-ex",
+  "version": "1.0.0",
+  "description": "Uniswap Order Exchange",
+  "main": "truffle-config.js",
+  "scripts": {
+    "test": "scripts/test.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Agusx1211/uniswap-ex.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Agusx1211/uniswap-ex/issues"
+  },
+  "homepage": "https://github.com/Agusx1211/uniswap-ex#readme",
+  "dependencies": {
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-register": "^6.26.0",
+    "bn-chai": "^1.0.1",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^3.0.0",
+    "ganache-cli": "^6.2.4",
+    "mocha": "^6.0.2",
+    "truffle": "^5.0.33",
+    "truffle-flattener": "^1.2.4"
+  }
+}

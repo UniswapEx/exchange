@@ -1,0 +1,26 @@
+.order p {
+  font-size: 14px;
+  color: #808080;
+  margin: 3px 0;
+}
+
+.tokens {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.tokens > span {
+  width: 30px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order .cta {
+  max-width: 180px;
+  margin: 15px auto 0;
+  width: 35%;
+  padding: .7rem 1.7rem .7rem 1.7rem;
+}
