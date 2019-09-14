@@ -77,9 +77,6 @@ export default function Footer() {
     <FooterFrame>
       <FooterElement>
         <Title>
-          <Link id="link" href="https://uniswapex.io/">
-            <h1 id="title">About</h1>
-          </Link>
           <Link id="link" href="https://github.com/UniswapEx/exchange">
             <h1 id="title">Docs</h1>
           </Link>
@@ -87,7 +84,7 @@ export default function Footer() {
             <h1 id="title">Code</h1>
           </Link>
           <Link id="link" href="https://etherscan.io/address/">
-            <h1 id="title">Donate❤</h1>
+            <h1 id="title">Donate ❤</h1>
           </Link>
         </Title>
       </FooterElement>
