@@ -18,7 +18,7 @@ import InjectedConnector from './InjectedConnector'
 import './i18n'
 
 if (process.env.NODE_ENV === 'production') {
-  ReactGA.initialize('UA-128182339-1')
+  ReactGA.initialize('UA-148036712-1')
 } else {
   ReactGA.initialize('test', { testMode: true })
 }
