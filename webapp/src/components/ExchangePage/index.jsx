@@ -297,7 +297,7 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
     try {
       const [transfers, deposits] = await Promise.all([
         fetch(
-          `http://api.etherscan.io/api?module=account&action=txlist&address=${account}&startblock=${CONTRACT_DEPLOYED_BLOCK}&sort=asc&apikey=`
+          `https://api.etherscan.io/api?module=account&action=txlist&address=${account}&startblock=${CONTRACT_DEPLOYED_BLOCK}&sort=asc&apikey=`
         ),
         fetch(
           `https://api.etherscan.io/api?module=logs&action=getLogs&fromBlock=${CONTRACT_DEPLOYED_BLOCK}&toBlock=latest&address=${uniswapEXContract.address}&topic0=${DEPOSIT_ORDER_EVENT_TOPIC0}&apikey=`
