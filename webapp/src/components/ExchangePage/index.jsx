@@ -823,7 +823,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
         </Button>
       </Flex>
       <div>
-        <h2>{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</h2>
+        <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
         {isFetchingOrders ? (
           <SpinnerWrapper src={Circle} alt="loader" />
         ) : orders.length === 0 ? (
