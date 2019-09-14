@@ -861,9 +861,9 @@ export default function ExchangePage({ initialCurrency, sending }) {
                       </Aligner>
                     </CurrencySelect>
                   </div>
-                  <p>{`Amount: ${parseFloat(Number(ethers.utils.formatUnits(order.amount, 18)).toFixed(4))}`}</p>
-                  <p>{`Min return: ${parseFloat(Number(ethers.utils.formatUnits(order.minReturn, 18)).toFixed(4))}`}</p>
-                  <p>{`Fee: ${parseFloat(Number(ethers.utils.formatUnits(order.fee, 18)).toFixed(4))}`}</p>
+                  <p>{`Amount: ${ethers.utils.formatUnits(order.amount, 18)}`}</p>
+                  <p>{`Min return: ${ethers.utils.formatUnits(order.minReturn, 18)}`}</p>
+                  <p>{`Fee: ${ethers.utils.formatUnits(order.fee, 18)}`}</p>
                   <Button className="cta" onClick={() => onCancel(order)}>
                     {t('cancel')}
                   </Button>
