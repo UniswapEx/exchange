@@ -292,82 +292,83 @@ function getMarketRate(
 async function fetchUserOrders(account, uniswapEXContract, setInputError) {
   // @TODO: move this to "useFetchUserOrders"
   hasFetchedOrders = true
-
-  const ordersAdded = {} // Used to remove deplicated or old (cancelled/executed) orders
-  try {
-    const [transfers, deposits] = await Promise.all([
-      fetch(
-        `http://api.etherscan.io/api?module=account&action=txlist&address=${account}&startblock=${CONTRACT_DEPLOYED_BLOCK}&sort=asc&apikey=`
-      ),
-      fetch(
-        `https://api.etherscan.io/api?module=logs&action=getLogs&fromBlock=${CONTRACT_DEPLOYED_BLOCK}&toBlock=latest&address=${uniswapEXContract.address}&topic0=${DEPOSIT_ORDER_EVENT_TOPIC0}&apikey=`
-      )
-    ])
-
-    // Transfers
-    const transfersResults = await transfers.json()
-    if (transfersResults.message === 'OK') {
-      // eslint-disable-next-line
-      for (let { hash } of transfersResults.result) {
-        const res = await fetch(
-          `https://api.etherscan.io/api?module=proxy&action=eth_getTransactionByHash&txhash=${hash}&apikey=`
+  if (account) {
+    const ordersAdded = {} // Used to remove deplicated or old (cancelled/executed) orders
+    try {
+      const [transfers, deposits] = await Promise.all([
+        fetch(
+          `https://api.etherscan.io/api?module=account&action=txlist&address=${account}&startblock=${CONTRACT_DEPLOYED_BLOCK}&sort=asc&apikey=`
+        ),
+        fetch(
+          `https://api.etherscan.io/api?module=logs&action=getLogs&fromBlock=${CONTRACT_DEPLOYED_BLOCK}&toBlock=latest&address=${uniswapEXContract.address}&topic0=${DEPOSIT_ORDER_EVENT_TOPIC0}&apikey=`
         )
-        const { result } = await res.json()
-        // @TODO: UAF - please change it, shame on you Nacho
-        // Check if the extra data is related to an order
-        if (result && result.input.indexOf(TRANSFER_SELECTOR) !== -1 && result.input.length > TRANSFER_TX_LENGTH) {
-          const orderData = `0x${result.input.substr(
-            TRANSFER_TX_LENGTH + TX_PADDED_BYTES_BOILERPLATE,
-            result.input.length
-          )}`
-          const order = await decodeOrder(uniswapEXContract, orderData)
-          if (!order) {
-            continue
-          }
-          const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
-          const amount = await new Promise(res =>
-            window.web3.eth.call(
-              {
-                to: order.fromToken,
-                data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
-              },
-              (error, amount) => {
-                if (error) {
-                  throw new Error(error)
-                }
-                res(amount)
-              }
-            )
-          )
-          if (order && !ordersAdded[orderData]) {
-            orders.push({ ...order, amount })
-            ordersAdded[orderData] = true
-          }
-        }
-      }
-    }
+      ])
 
-    // Deposit ETH orders
-    const depositsResults = await deposits.json()
-    if (depositsResults.message === 'OK') {
-      // eslint-disable-next-line
-      for (let { data, topics } of depositsResults.result) {
-        const [, key, owner] = topics
-        // Check the owner from a padded 32-bytes address
-        const bytesBoilerplate = 66
-        if (`0x${owner.substr(26, bytesBoilerplate).toLowerCase()}` === account.toLowerCase()) {
-          const orderData = `0x${data.substr(bytesBoilerplate + TX_PADDED_BYTES_BOILERPLATE, data.length)}`
-          const order = await decodeOrder(uniswapEXContract, orderData)
-          const amount = await uniswapEXContract.ethDeposits(key)
-          if (order && !ordersAdded[orderData]) {
-            orders.push({ ...order, amount })
-            ordersAdded[orderData] = true
+      // Transfers
+      const transfersResults = await transfers.json()
+      if (transfersResults.message === 'OK') {
+        // eslint-disable-next-line
+        for (let { hash } of transfersResults.result) {
+          const res = await fetch(
+            `https://api.etherscan.io/api?module=proxy&action=eth_getTransactionByHash&txhash=${hash}&apikey=`
+          )
+          const { result } = await res.json()
+          // @TODO: UAF - please change it, shame on you Nacho
+          // Check if the extra data is related to an order
+          if (result && result.input.indexOf(TRANSFER_SELECTOR) !== -1 && result.input.length > TRANSFER_TX_LENGTH) {
+            const orderData = `0x${result.input.substr(
+              TRANSFER_TX_LENGTH + TX_PADDED_BYTES_BOILERPLATE,
+              result.input.length
+            )}`
+            const order = await decodeOrder(uniswapEXContract, orderData)
+            if (!order) {
+              continue
+            }
+            const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
+            const amount = await new Promise(res =>
+              window.web3.eth.call(
+                {
+                  to: order.fromToken,
+                  data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
+                },
+                (error, amount) => {
+                  if (error) {
+                    throw new Error(error)
+                  }
+                  res(amount)
+                }
+              )
+            )
+            if (order && !ordersAdded[orderData]) {
+              orders.push({ ...order, amount })
+              ordersAdded[orderData] = true
+            }
           }
         }
       }
+
+      // Deposit ETH orders
+      const depositsResults = await deposits.json()
+      if (depositsResults.message === 'OK') {
+        // eslint-disable-next-line
+        for (let { data, topics } of depositsResults.result) {
+          const [, key, owner] = topics
+          // Check the owner from a padded 32-bytes address
+          const bytesBoilerplate = 66
+          if (`0x${owner.substr(26, bytesBoilerplate).toLowerCase()}` === account.toLowerCase()) {
+            const orderData = `0x${data.substr(bytesBoilerplate + TX_PADDED_BYTES_BOILERPLATE, data.length)}`
+            const order = await decodeOrder(uniswapEXContract, orderData)
+            const amount = await uniswapEXContract.ethDeposits(key)
+            if (order && !ordersAdded[orderData]) {
+              orders.push({ ...order, amount })
+              ordersAdded[orderData] = true
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.log(`Error when fetching open orders: ${e.message}`)
     }
-  } catch (e) {
-    console.log(`Error when fetching open orders: ${e.message}`)
   }
   isFetchingOrders = false
   setInputError(null) // Hack to update the component state, should be removed
@@ -822,7 +823,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
         </Button>
       </Flex>
       <div>
-        <h2>{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</h2>
+        <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
         {isFetchingOrders ? (
           <SpinnerWrapper src={Circle} alt="loader" />
         ) : orders.length === 0 ? (
@@ -860,9 +861,9 @@ export default function ExchangePage({ initialCurrency, sending }) {
                       </Aligner>
                     </CurrencySelect>
                   </div>
-                  <p>{`Amount: ${parseFloat(Number(ethers.utils.formatUnits(order.amount, 18)).toFixed(4))}`}</p>
-                  <p>{`Min return: ${parseFloat(Number(ethers.utils.formatUnits(order.minReturn, 18)).toFixed(4))}`}</p>
-                  <p>{`Fee: ${parseFloat(Number(ethers.utils.formatUnits(order.fee, 18)).toFixed(4))}`}</p>
+                  <p>{`Amount: ${ethers.utils.formatUnits(order.amount, 18)}`}</p>
+                  <p>{`Min return: ${ethers.utils.formatUnits(order.minReturn, 18)}`}</p>
+                  <p>{`Fee: ${ethers.utils.formatUnits(order.fee, 18)}`}</p>
                   <Button className="cta" onClick={() => onCancel(order)}>
                     {t('cancel')}
                   </Button>

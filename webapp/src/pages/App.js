@@ -59,20 +59,20 @@ export default function App() {
                   {/* this Suspense is for route code-splitting */}
                   <Suspense fallback={null}>
                     <Switch>
-                      <Route exact strict path="/swap" component={Swap} />
+                      <Route exact strict path="/order" component={Swap} />
                       <Route
                         exact
                         strict
-                        path="/swap/:tokenAddress?"
+                        path="/order/:tokenAddress?"
                         render={({ match }) => {
                           if (isAddress(match.params.tokenAddress)) {
                             return <Swap initialCurrency={isAddress(match.params.tokenAddress)} />
                           } else {
-                            return <Redirect to={{ pathname: '/swap' }} />
+                            return <Redirect to={{ pathname: '/order' }} />
                           }
                         }}
                       />
-                      <Redirect to="/swap" />
+                      <Redirect to="/order" />
                     </Switch>
                   </Suspense>
                 </BrowserRouter>

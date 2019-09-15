@@ -4,7 +4,8 @@
   "description": "Uniswap Order Exchange",
   "main": "truffle-config.js",
   "scripts": {
-    "test": "scripts/test.sh"
+    "test": "scripts/test.sh",
+    "build": "cd webapp && now"
   },
   "repository": {
     "type": "git",
@@ -27,6 +28,7 @@
     "chai-bignumber": "^3.0.0",
     "ganache-cli": "^6.2.4",
     "mocha": "^6.0.2",
+    "now": "^16.2.0",
     "truffle": "^5.0.33",
     "truffle-flattener": "^1.2.4"
   }
