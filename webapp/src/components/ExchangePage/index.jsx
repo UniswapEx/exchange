@@ -375,10 +375,10 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
 }
 
 async function decodeOrder(uniswapEXContract, data) {
-  const { fromToken, toToken, minReturn, fee, owner, salt } = await uniswapEXContract.decodeOrder(data)
-  const existOrder = await uniswapEXContract.existOrder(fromToken, toToken, minReturn, fee, owner, salt)
+  const { fromToken, toToken, minReturn, fee, owner, witness } = await uniswapEXContract.decodeOrder(data)
+  const existOrder = await uniswapEXContract.existOrder(fromToken, toToken, minReturn, fee, owner, witness)
   if (existOrder) {
-    return { fromToken, toToken, minReturn, fee, owner, salt }
+    return { fromToken, toToken, minReturn, fee, owner, witness }
   }
 }
 
@@ -678,6 +678,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
       toCurrency = outputCurrency
     }
     try {
+      const {privateKey, address } = ethers.Wallet.createRandom({ extraEntropy: ethers.utils.randomBytes(32) })
       data = await (swapType === ETH_TO_TOKEN
         ? method(
             fromCurrency,
@@ -685,7 +686,8 @@ export default function ExchangePage({ initialCurrency, sending }) {
             minimumReturn,
             ORDER_FEE,
             account,
-            ethers.utils.bigNumberify(ethers.utils.randomBytes(32))
+            privateKey,
+            address
           )
         : await method(
             fromCurrency,
@@ -694,7 +696,8 @@ export default function ExchangePage({ initialCurrency, sending }) {
             minimumReturn,
             ORDER_FEE,
             account,
-            ethers.utils.bigNumberify(ethers.utils.randomBytes(32))
+            privateKey,
+            address
           ))
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
@@ -723,8 +726,8 @@ export default function ExchangePage({ initialCurrency, sending }) {
   }
 
   async function onCancel(order) {
-    const { fromToken, toToken, minReturn, fee, owner, salt } = order
-    const tx = await uniswapEXContract.cancelOrder(fromToken, toToken, minReturn, fee, owner, salt)
+    const { fromToken, toToken, minReturn, fee, owner, witness } = order
+    const tx = await uniswapEXContract.cancelOrder(fromToken, toToken, minReturn, fee, owner, witness)
     addTransaction(tx)
   }
 
