@@ -31,5 +31,8 @@
     "now": "^16.2.0",
     "truffle": "^5.0.33",
     "truffle-flattener": "^1.2.4"
+  },
+  "devDependencies": {
+    "ethereumjs-util": "^6.1.0"
   }
 }
