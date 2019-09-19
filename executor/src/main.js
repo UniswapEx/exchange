@@ -1,21 +1,65 @@
 const Web3 = require('web3');
 
+const Monitor = require('./monitor.js');
 const Conector = require('./conector.js');
 const Handler = require('./handler.js');
+const read = require('read')
+const util = require('util');
 
 async function main() {
     var web3 = new Web3("https://node.rcn.loans/");
     const conector = new Conector(web3);
+    const monitor = new Monitor(web3);
     const handler = new Handler(web3);
 
-    var orders = [];
+    var pk = await util.promisify(read)({ prompt: 'Private key: ', silent: true, replace: "*" })
+    pk = pk.startsWith('0x') ? pk : `0x${pk}`
 
-    conector.start((order) => {
+    const account = web3.eth.accounts.privateKeyToAccount(pk)
+    web3.eth.accounts.wallet.add(account);
 
+    console.log(`Using account ${account.address}`)
+
+    var rawOrders = [];
+    var decodedOrders = {};
+    var filledOrders = [];
+
+    monitor.onBlock(async (newBlock) => {
+        const newOrders = await conector.getOrders(newBlock);
+        rawOrders = rawOrders.concat(newOrders.filter((o) => rawOrders.indexOf(o) < 0));
+
+        // Decode orders
+        for (const i in rawOrders) {
+            const rawOrder = rawOrders[i]
+            if (decodedOrders[rawOrder] == undefined) {
+                decodedOrders[rawOrder] = await handler.decode(rawOrder);
+            }
+        };
+
+        var openOrders = [];
+
+        // Filter open orders
+        for (const i in rawOrders) {
+            const rawOrder = rawOrders[i];
+            if (await handler.exists(decodedOrders[rawOrder])) {
+                openOrders.push(decodedOrders[rawOrder]);
+            }
+        };
+
+        // Find filleable orders
+        for (const i in openOrders) {
+            const order = openOrders[i];
+
+            if (filledOrders.indexOf(order) == -1 && await handler.isReady(order)) {
+                const result = await handler.fillOrder(order, account);
+                if (result != undefined) {
+                    filledOrders.push(order);
+                }
+            } else {
+                console.log("not ready");
+            }
+        };
     });
-
-    handler.addOrder("0xa9059cbb00000000000000000000000028e84fe9aa8d382206f98e7abcc58840dac4c0b10000000000000000000000000000000000000000000000000de0b6b3a7640000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000f5d2fb29fb7d3cfee444a200298f468908cc942000000000000000000000000f970b8e36e23f7fc3fd752eea86f8be8d83375a60000000000000000000000000000000000000000000000000e043da61725000000000000000000000000000000000000000000000000000000005af3107a400000000000000000000000000087956abc4078a0cc3b89b419928b857b8af826ed1231231231231231231231231231231212312312312312312312312312312312");
-    handler.start();
 }
 
 main();

@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "read": "^1.0.7",
+    "web3": "^1.2.1",
     "ethereumjs-util": "^6.1.0"
   }
 }

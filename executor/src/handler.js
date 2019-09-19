@@ -1,51 +1,89 @@
-const uniswap_ex_abi = require('./uniswapEx.js')
+const uniswap_ex_abi = require('./interfaces/uniswapEx.js');
+// const uniswap_ex_proxy_abi = require('./interfaces/uniswapExProxy.js');
 
-const env = require('../env.js')
+const env = require('../env.js');
 
 module.exports = class Handler {
-  constructor(w3) {
-    this.w3 = w3
-    this.uniswap_ex = w3.eth.Contract(uniswap_ex_abi, env.uniswapEx)
-    this.orders = []
-  }
-
-  async exists(order) {
-    // TODO: Check if order is valid
-    return await this.uniswap_ex.methods
-      .exists(order._from, order._to, order._return, order._fee, order._owner)
-      .call()
-  }
-
-  async isReady(order) {
-    // TODO: Check if order is valid
-    return await this.uniswap_ex.methods
-      .canExecuteOrder(
-        order._from,
-        order._to,
-        order._return,
-        order._fee,
-        order._owner
-      )
-      .call()
-  }
-
-  async addOrder(tx_data) {
-    const order_data = `0x${tx_data.substr(-384)}`
-    const order = await this.uniswap_ex.methods.decode(order_data).call()
-    if (await this.exists(order)) {
-      this.orders.push(order)
-    }
-  }
-
-  async start() {
-    for (let i in this.orders) {
-      const order = this.orders[i]
-
-      if (await this.isReady(order)) {
-        // Send fill tx
-      }
+    constructor(w3) {
+        this.w3 = w3;
+        this.uniswap_ex = new w3.eth.Contract(uniswap_ex_abi, env.uniswapEx);
+        // this.uniswap_ex_proxy = new w3.eth.Contract(uniswap_ex_proxy_abi, env.uniswapExProxy);
+        this.orders = []
     }
 
-    setTimeout(() => this.start(), 5000)
-  }
+    async exists(order) {
+        return await this.uniswap_ex.methods.existOrder(
+            order.fromToken,
+            order.toToken,
+            order.minReturn,
+            order.fee,
+            order.owner,
+            order.salt
+        ).call();
+    }
+
+    async isReady(order) {
+        // TODO: Check if order is valid
+        return await this.uniswap_ex.methods.canExecuteOrder(
+            order.fromToken,
+            order.toToken,
+            order.minReturn,
+            order.fee,
+            order.owner,
+            order.salt
+        ).call();
+    }
+
+    async decode(tx_data) {
+        const data = tx_data > 384 ? `0x${tx_data.substr(-384)}` : tx_data
+        const decoded = await this.uniswap_ex.methods.decodeOrder(data).call()
+        return decoded
+    }
+
+    async fillOrder(order, account) {
+        const gasPrice = await this.w3.eth.getGasPrice();
+
+        // const checksum = await this.uniswap_ex_proxy.methods.getChecksum(
+        //     order.owner,
+        //     order.salt,
+        //     account.address
+        // ).call();
+
+        const estimatedGas = parseInt(await this.uniswap_ex.methods.executeOrder(
+            order.fromToken,
+            order.toToken,
+            order.minReturn,
+            order.fee,
+            order.owner,
+            order.salt,
+            account.address
+        ).estimateGas(
+            { from: account.address }
+        ));
+
+        if (gasPrice * estimatedGas > order.fee) {
+            // Fee is too low
+            console.log("Skip filling order, fee is not enought")
+            return undefined
+        }
+
+        try {
+            const tx = await this.uniswap_ex.methods.executeOrder(
+                order.fromToken,
+                order.toToken,
+                order.minReturn,
+                order.fee,
+                order.owner,
+                order.salt,
+                account.address
+            ).send(
+                { from: account.address, gas: estimatedGas, gasPrice: gasPrice }
+            );
+            console.log('Filled order, txHash: ' + tx.transactionHash)
+            return tx.transactionHash
+        } catch (e) {
+            console.log('Error message: ' + e.message)
+            return undefined
+        }
+    }
 }
