@@ -4,7 +4,7 @@ module.exports = class Monitor {
   }
 
   async onBlock(callback) {
-    const lastBlock = 0;
+    let lastBlock = 0;
     while (true) {
       const newBlock = await this.w3.eth.getBlockNumber();
       if (newBlock != lastBlock) {

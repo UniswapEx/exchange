@@ -7,7 +7,7 @@ const read = require('read');
 const util = require('util');
 
 async function main() {
-  const web3 = new Web3('https://node.rcn.loans/');
+  const web3 = new Web3('https://mainnet.infura.io/v3/0f5d002a02c943fd916caf512a9b00db');
   const conector = new Conector(web3);
   const monitor = new Monitor(web3);
   const handler = new Handler(web3);

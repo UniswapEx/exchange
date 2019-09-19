@@ -10,7 +10,7 @@ module.exports = class Conector {
     this.w3 = w3;
     this.uni_factory = new w3.eth.Contract(factoryAbi, env.uniswapFactory);
     this.uniswap_ex = new w3.eth.Contract(uniswapexAbi, env.uniswapEx);
-    this.last_monitored = 8549023;
+    this.last_monitored = 8579313;
     this.uniswap_token_cache = {};
   }
 

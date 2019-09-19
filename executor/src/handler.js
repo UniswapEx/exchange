@@ -1,4 +1,5 @@
 const uniswapExAbi = require('./interfaces/uniswapEx.js');
+const eutils = require('ethereumjs-util');
 const env = require('../env.js');
 
 module.exports = class Handler {
@@ -15,7 +16,7 @@ module.exports = class Handler {
         order.minReturn,
         order.fee,
         order.owner,
-        order.salt
+        order.witness
     ).call();
   }
 
@@ -27,24 +28,32 @@ module.exports = class Handler {
         order.minReturn,
         order.fee,
         order.owner,
-        order.salt
+        order.witness
     ).call();
   }
 
   async decode(txData) {
-    const data = txData > 384 ? `0x${txData.substr(-384)}` : txData;
+    const data = txData > 448 ? `0x${txData.substr(-448)}` : txData;
     const decoded = await this.uniswap_ex.methods.decodeOrder(data).call();
     return decoded;
+  }
+
+  sign(address, priv) {
+    const hash = this.w3.utils.soliditySha3(
+        {t: 'address', v: address}
+    );
+    const sig = eutils.ecsign(
+        eutils.toBuffer(hash),
+        eutils.toBuffer(priv)
+    );
+
+    return eutils.bufferToHex(Buffer.concat([sig.r, sig.s, eutils.toBuffer(sig.v)]));
   }
 
   async fillOrder(order, account) {
     const gasPrice = await this.w3.eth.getGasPrice();
 
-    // const checksum = await this.uniswap_ex_proxy.methods.getChecksum(
-    //     order.owner,
-    //     order.salt,
-    //     account.address
-    // ).call();
+    const witnesses = this.sign(account.address, order.secret);
 
     const estimatedGas = parseInt(await this.uniswap_ex.methods.executeOrder(
         order.fromToken,
@@ -52,8 +61,7 @@ module.exports = class Handler {
         order.minReturn,
         order.fee,
         order.owner,
-        order.salt,
-        account.address
+        witnesses
     ).estimateGas(
         {from: account.address}
     ));
@@ -71,8 +79,7 @@ module.exports = class Handler {
           order.minReturn,
           order.fee,
           order.owner,
-          order.salt,
-          account.address
+          witnesses
       ).send(
           {from: account.address, gas: estimatedGas, gasPrice: gasPrice}
       );
