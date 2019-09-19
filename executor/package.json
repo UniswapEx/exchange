@@ -9,9 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "async-retry": "^1.2.3",
+    "ethereumjs-util": "^6.1.0",
     "read": "^1.0.7",
-    "web3": "^1.2.1",
-    "ethereumjs-util": "^6.1.0"
+    "web3": "^1.2.1"
   },
   "devDependencies": {
     "eslint": "^6.4.0",

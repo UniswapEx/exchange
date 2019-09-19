@@ -5,6 +5,7 @@ const Conector = require('./conector.js');
 const Handler = require('./handler.js');
 const read = require('read');
 const util = require('util');
+const retry = require('./retry.js');
 
 async function main() {
   const web3 = new Web3(process.env.NODE);
@@ -43,7 +44,7 @@ async function main() {
     for (const i in rawOrders) {
       const rawOrder = rawOrders[i];
       if (decodedOrders[rawOrder] == undefined) {
-        decodedOrders[rawOrder] = await handler.decode(rawOrder);
+        decodedOrders[rawOrder] = await retry(handler.decode(rawOrder));
       }
     };
 
@@ -52,7 +53,7 @@ async function main() {
     // Filter open orders
     for (const i in rawOrders) {
       const rawOrder = rawOrders[i];
-      if (await handler.exists(decodedOrders[rawOrder])) {
+      if (await retry(handler.exists(decodedOrders[rawOrder]))) {
         openOrders.push(decodedOrders[rawOrder]);
       }
     };
@@ -61,8 +62,8 @@ async function main() {
     for (const i in openOrders) {
       const order = openOrders[i];
 
-      if (filledOrders.indexOf(order) == -1 && await handler.isReady(order)) {
-        const result = await handler.fillOrder(order, account);
+      if (filledOrders.indexOf(order) == -1 && await retry(handler.isReady(order))) {
+        const result = await retry(handler.fillOrder(order, account), 4);
         if (result != undefined) {
           filledOrders.push(order);
         }
