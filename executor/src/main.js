@@ -7,16 +7,22 @@ const read = require('read');
 const util = require('util');
 
 async function main() {
-  const web3 = new Web3('https://mainnet.infura.io/v3/0f5d002a02c943fd916caf512a9b00db');
+  const web3 = new Web3(process.env.NODE);
   const conector = new Conector(web3);
   const monitor = new Monitor(web3);
   const handler = new Handler(web3);
 
-  let pk = await util.promisify(read)({
-    prompt: 'Private key: ',
-    silent: true,
-    replace: '*',
-  });
+  let pk;
+
+  if (process.env.PK != undefined) {
+    pk = process.env.PK;
+  } else {
+    pk = await util.promisify(read)({
+      prompt: 'Private key: ',
+      silent: true,
+      replace: '*',
+    });
+  }
 
   pk = pk.startsWith('0x') ? pk : `0x${pk}`;
 
