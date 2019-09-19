@@ -3,6 +3,74 @@ module.exports = [
     'constant': false,
     'inputs': [
       {
+        'internalType': 'bytes',
+        'name': '_data',
+        'type': 'bytes',
+      },
+    ],
+    'name': 'depositEth',
+    'outputs': [
+
+    ],
+    'payable': true,
+    'stateMutability': 'payable',
+    'type': 'function',
+  },
+  {
+    'constant': true,
+    'inputs': [
+      {
+        'internalType': 'address',
+        'name': '_fromToken',
+        'type': 'address',
+      },
+      {
+        'internalType': 'address',
+        'name': '_toToken',
+        'type': 'address',
+      },
+      {
+        'internalType': 'uint256',
+        'name': '_minReturn',
+        'type': 'uint256',
+      },
+      {
+        'internalType': 'uint256',
+        'name': '_fee',
+        'type': 'uint256',
+      },
+      {
+        'internalType': 'address payable',
+        'name': '_owner',
+        'type': 'address',
+      },
+      {
+        'internalType': 'bytes32',
+        'name': '_secret',
+        'type': 'bytes32',
+      },
+      {
+        'internalType': 'address',
+        'name': '_witness',
+        'type': 'address',
+      },
+    ],
+    'name': 'encodeEthOrder',
+    'outputs': [
+      {
+        'internalType': 'bytes',
+        'name': '',
+        'type': 'bytes',
+      },
+    ],
+    'payable': false,
+    'stateMutability': 'pure',
+    'type': 'function',
+  },
+  {
+    'constant': false,
+    'inputs': [
+      {
         'internalType': 'contract IERC20',
         'name': '_fromToken',
         'type': 'address',
@@ -28,17 +96,54 @@ module.exports = [
         'type': 'address',
       },
       {
-        'internalType': 'bytes32',
-        'name': '_salt',
-        'type': 'bytes32',
-      },
-      {
-        'internalType': 'address payable',
-        'name': '_executor',
-        'type': 'address',
+        'internalType': 'bytes',
+        'name': '_witnesses',
+        'type': 'bytes',
       },
     ],
     'name': 'executeOrder',
+    'outputs': [
+
+    ],
+    'payable': false,
+    'stateMutability': 'nonpayable',
+    'type': 'function',
+  },
+  {
+    'constant': false,
+    'inputs': [
+      {
+        'internalType': 'contract IERC20',
+        'name': '_fromToken',
+        'type': 'address',
+      },
+      {
+        'internalType': 'contract IERC20',
+        'name': '_toToken',
+        'type': 'address',
+      },
+      {
+        'internalType': 'uint256',
+        'name': '_minReturn',
+        'type': 'uint256',
+      },
+      {
+        'internalType': 'uint256',
+        'name': '_fee',
+        'type': 'uint256',
+      },
+      {
+        'internalType': 'address payable',
+        'name': '_owner',
+        'type': 'address',
+      },
+      {
+        'internalType': 'address',
+        'name': '_witness',
+        'type': 'address',
+      },
+    ],
+    'name': 'cancelOrder',
     'outputs': [
 
     ],
@@ -75,12 +180,12 @@ module.exports = [
         'type': 'address',
       },
       {
-        'internalType': 'bytes32',
-        'name': '_salt',
-        'type': 'bytes32',
+        'internalType': 'address',
+        'name': '_witness',
+        'type': 'address',
       },
     ],
-    'name': 'canExecuteOrder',
+    'name': 'existOrder',
     'outputs': [
       {
         'internalType': 'bool',
@@ -90,23 +195,6 @@ module.exports = [
     ],
     'payable': false,
     'stateMutability': 'view',
-    'type': 'function',
-  },
-  {
-    'constant': false,
-    'inputs': [
-      {
-        'internalType': 'bytes',
-        'name': '_data',
-        'type': 'bytes',
-      },
-    ],
-    'name': 'depositEth',
-    'outputs': [
-
-    ],
-    'payable': true,
-    'stateMutability': 'payable',
     'type': 'function',
   },
   {
@@ -138,12 +226,12 @@ module.exports = [
         'type': 'address',
       },
       {
-        'internalType': 'bytes32',
-        'name': '_salt',
-        'type': 'bytes32',
+        'internalType': 'address',
+        'name': '_witness',
+        'type': 'address',
       },
     ],
-    'name': 'existOrder',
+    'name': 'canExecuteOrder',
     'outputs': [
       {
         'internalType': 'bool',
@@ -190,8 +278,13 @@ module.exports = [
       },
       {
         'internalType': 'bytes32',
-        'name': '_salt',
+        'name': '_secret',
         'type': 'bytes32',
+      },
+      {
+        'internalType': 'address',
+        'name': '_witness',
+        'type': 'address',
       },
     ],
     'name': 'encodeTokenOrder',
@@ -278,100 +371,17 @@ module.exports = [
       },
       {
         'internalType': 'bytes32',
-        'name': 'salt',
+        'name': 'secret',
         'type': 'bytes32',
+      },
+      {
+        'internalType': 'address',
+        'name': 'witness',
+        'type': 'address',
       },
     ],
     'payable': false,
     'stateMutability': 'pure',
-    'type': 'function',
-  },
-  {
-    'constant': true,
-    'inputs': [
-      {
-        'internalType': 'address',
-        'name': '_fromToken',
-        'type': 'address',
-      },
-      {
-        'internalType': 'address',
-        'name': '_toToken',
-        'type': 'address',
-      },
-      {
-        'internalType': 'uint256',
-        'name': '_minReturn',
-        'type': 'uint256',
-      },
-      {
-        'internalType': 'uint256',
-        'name': '_fee',
-        'type': 'uint256',
-      },
-      {
-        'internalType': 'address payable',
-        'name': '_owner',
-        'type': 'address',
-      },
-      {
-        'internalType': 'bytes32',
-        'name': '_salt',
-        'type': 'bytes32',
-      },
-    ],
-    'name': 'encodeEthOrder',
-    'outputs': [
-      {
-        'internalType': 'bytes',
-        'name': '',
-        'type': 'bytes',
-      },
-    ],
-    'payable': false,
-    'stateMutability': 'pure',
-    'type': 'function',
-  },
-  {
-    'constant': false,
-    'inputs': [
-      {
-        'internalType': 'contract IERC20',
-        'name': '_fromToken',
-        'type': 'address',
-      },
-      {
-        'internalType': 'contract IERC20',
-        'name': '_toToken',
-        'type': 'address',
-      },
-      {
-        'internalType': 'uint256',
-        'name': '_minReturn',
-        'type': 'uint256',
-      },
-      {
-        'internalType': 'uint256',
-        'name': '_fee',
-        'type': 'uint256',
-      },
-      {
-        'internalType': 'address payable',
-        'name': '_owner',
-        'type': 'address',
-      },
-      {
-        'internalType': 'bytes32',
-        'name': '_salt',
-        'type': 'bytes32',
-      },
-    ],
-    'name': 'cancelOrder',
-    'outputs': [
-
-    ],
-    'payable': false,
-    'stateMutability': 'nonpayable',
     'type': 'function',
   },
   {
@@ -424,9 +434,9 @@ module.exports = [
         'type': 'address',
       },
       {
-        'internalType': 'bytes32',
-        'name': '_salt',
-        'type': 'bytes32',
+        'internalType': 'address',
+        'name': '_witness',
+        'type': 'address',
       },
     ],
     'name': 'vaultOfOrder',
@@ -530,9 +540,9 @@ module.exports = [
       },
       {
         'indexed': false,
-        'internalType': 'bytes32',
-        'name': '_salt',
-        'type': 'bytes32',
+        'internalType': 'address',
+        'name': '_witness',
+        'type': 'address',
       },
       {
         'indexed': false,
@@ -551,12 +561,6 @@ module.exports = [
         'internalType': 'uint256',
         'name': '_bought',
         'type': 'uint256',
-      },
-      {
-        'indexed': false,
-        'internalType': 'address',
-        'name': '_executor',
-        'type': 'address',
       },
     ],
     'name': 'OrderExecuted',
@@ -603,9 +607,9 @@ module.exports = [
       },
       {
         'indexed': false,
-        'internalType': 'bytes32',
-        'name': '_salt',
-        'type': 'bytes32',
+        'internalType': 'address',
+        'name': '_witness',
+        'type': 'address',
       },
       {
         'indexed': false,
@@ -618,3 +622,4 @@ module.exports = [
     'type': 'event',
   },
 ];
+

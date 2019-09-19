@@ -27,3 +27,4 @@ notes.txt
 .idea/
 
 .vscode/
+/executor/node_modules

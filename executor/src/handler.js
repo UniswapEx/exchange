@@ -1,13 +1,10 @@
 const uniswapExAbi = require('./interfaces/uniswapEx.js');
-// const uniswap_ex_proxy_abi = require('./interfaces/uniswapExProxy.js');
-
 const env = require('../env.js');
 
 module.exports = class Handler {
   constructor(w3) {
     this.w3 = w3;
     this.uniswap_ex = new w3.eth.Contract(uniswapExAbi, env.uniswapEx);
-    // this.uniswap_ex_proxy = new w3.eth.Contract(uniswap_ex_proxy_abi, env.uniswapExProxy);
     this.orders = [];
   }
 
