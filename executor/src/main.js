@@ -3,63 +3,68 @@ const Web3 = require('web3');
 const Monitor = require('./monitor.js');
 const Conector = require('./conector.js');
 const Handler = require('./handler.js');
-const read = require('read')
+const read = require('read');
 const util = require('util');
 
 async function main() {
-    var web3 = new Web3("https://node.rcn.loans/");
-    const conector = new Conector(web3);
-    const monitor = new Monitor(web3);
-    const handler = new Handler(web3);
+  const web3 = new Web3('https://node.rcn.loans/');
+  const conector = new Conector(web3);
+  const monitor = new Monitor(web3);
+  const handler = new Handler(web3);
 
-    var pk = await util.promisify(read)({ prompt: 'Private key: ', silent: true, replace: "*" })
-    pk = pk.startsWith('0x') ? pk : `0x${pk}`
+  let pk = await util.promisify(read)({
+    prompt: 'Private key: ',
+    silent: true,
+    replace: '*',
+  });
 
-    const account = web3.eth.accounts.privateKeyToAccount(pk)
-    web3.eth.accounts.wallet.add(account);
+  pk = pk.startsWith('0x') ? pk : `0x${pk}`;
 
-    console.log(`Using account ${account.address}`)
+  const account = web3.eth.accounts.privateKeyToAccount(pk);
+  web3.eth.accounts.wallet.add(account);
 
-    var rawOrders = [];
-    var decodedOrders = {};
-    var filledOrders = [];
+  console.log(`Using account ${account.address}`);
 
-    monitor.onBlock(async (newBlock) => {
-        const newOrders = await conector.getOrders(newBlock);
-        rawOrders = rawOrders.concat(newOrders.filter((o) => rawOrders.indexOf(o) < 0));
+  let rawOrders = [];
+  const decodedOrders = {};
+  const filledOrders = [];
 
-        // Decode orders
-        for (const i in rawOrders) {
-            const rawOrder = rawOrders[i]
-            if (decodedOrders[rawOrder] == undefined) {
-                decodedOrders[rawOrder] = await handler.decode(rawOrder);
-            }
-        };
+  monitor.onBlock(async (newBlock) => {
+    const newOrders = await conector.getOrders(newBlock);
+    rawOrders = rawOrders.concat(newOrders.filter((o) => rawOrders.indexOf(o) < 0));
 
-        var openOrders = [];
+    // Decode orders
+    for (const i in rawOrders) {
+      const rawOrder = rawOrders[i];
+      if (decodedOrders[rawOrder] == undefined) {
+        decodedOrders[rawOrder] = await handler.decode(rawOrder);
+      }
+    };
 
-        // Filter open orders
-        for (const i in rawOrders) {
-            const rawOrder = rawOrders[i];
-            if (await handler.exists(decodedOrders[rawOrder])) {
-                openOrders.push(decodedOrders[rawOrder]);
-            }
-        };
+    const openOrders = [];
 
-        // Find filleable orders
-        for (const i in openOrders) {
-            const order = openOrders[i];
+    // Filter open orders
+    for (const i in rawOrders) {
+      const rawOrder = rawOrders[i];
+      if (await handler.exists(decodedOrders[rawOrder])) {
+        openOrders.push(decodedOrders[rawOrder]);
+      }
+    };
 
-            if (filledOrders.indexOf(order) == -1 && await handler.isReady(order)) {
-                const result = await handler.fillOrder(order, account);
-                if (result != undefined) {
-                    filledOrders.push(order);
-                }
-            } else {
-                console.log("not ready");
-            }
-        };
-    });
+    // Find filleable orders
+    for (const i in openOrders) {
+      const order = openOrders[i];
+
+      if (filledOrders.indexOf(order) == -1 && await handler.isReady(order)) {
+        const result = await handler.fillOrder(order, account);
+        if (result != undefined) {
+          filledOrders.push(order);
+        }
+      } else {
+        console.log('not ready');
+      }
+    };
+  });
 }
 
 main();
