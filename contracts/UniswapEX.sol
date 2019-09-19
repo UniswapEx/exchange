@@ -75,7 +75,7 @@ contract UniswapEX {
         require(fromToken == ETH_ADDRESS, "order is not from ETH");
 
         bytes32 key = _keyOf(
-            IERC20(ETH_ADDRESS),
+            IERC20(fromToken),
             IERC20(toToken),
             minReturn,
             fee,
@@ -123,15 +123,6 @@ contract UniswapEX {
             _owner,
             _witness,
             amount
-        );
-    }
-
-    function readWitnesses(
-        bytes calldata _witnesses
-    ) external view returns (address) {
-        return SigUtils.ecrecover2(
-            keccak256(abi.encodePacked(msg.sender)),
-            _witnesses
         );
     }
 
