@@ -1,0 +1,4 @@
+[build]
+  base    = "webapp"
+  command = "npm run-script build"
+  publish = "webapp/build"

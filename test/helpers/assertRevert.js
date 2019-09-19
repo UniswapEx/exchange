@@ -1,16 +1,16 @@
-const should = require("chai").should();
+const should = require('chai').should()
 
 export default async function assertRevert(promise, message) {
   try {
-    await promise;
+    await promise
   } catch (error) {
     error.message.should.include(
       message
         ? `VM Exception while processing transaction: revert ${message}`
-        : "revert",
+        : 'revert',
       `Expected "revert", got ${error} instead`
-    );
-    return;
+    )
+    return
   }
-  should.fail("Expected revert not received");
+  should.fail('Expected revert not received')
 }

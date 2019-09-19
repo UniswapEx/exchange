@@ -2,6 +2,7 @@ pragma solidity ^0.5.11;
 
 
 import "./commons/SafeMath.sol";
+import "./commons/SigUtils.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/UniswapExchange.sol";
 import "./interfaces/UniswapFactory.sol";
@@ -26,7 +27,7 @@ contract UniswapEX {
         uint256 _minReturn,
         uint256 _fee,
         address _owner,
-        bytes32 _salt,
+        address _witness,
         address _relayer,
         uint256 _amount,
         uint256 _bought
@@ -39,7 +40,7 @@ contract UniswapEX {
         uint256 _minReturn,
         uint256 _fee,
         address _owner,
-        bytes32 _salt,
+        address _witness,
         uint256 _amount
     );
 
@@ -61,7 +62,27 @@ contract UniswapEX {
     ) external payable {
         require(msg.value > 0, "No value provided");
 
-        bytes32 key = keccak256(_data);
+        (
+            address fromToken,
+            address toToken,
+            uint256 minReturn,
+            uint256 fee,
+            address payable owner,
+            ,
+            address witness
+        ) = decodeOrder(_data);
+
+        require(fromToken == ETH_ADDRESS, "order is not from ETH");
+
+        bytes32 key = _keyOf(
+            IERC20(fromToken),
+            IERC20(toToken),
+            minReturn,
+            fee,
+            owner,
+            witness
+        );
+
         ethDeposits[key] = ethDeposits[key].add(msg.value);
         emit DepositETH(key, msg.sender, msg.value, _data);
     }
@@ -72,7 +93,7 @@ contract UniswapEX {
         uint256 _minReturn,
         uint256 _fee,
         address payable _owner,
-        bytes32 _salt
+        address _witness
     ) external {
         require(msg.sender == _owner, "Only the owner of the order can cancel it");
         bytes32 key = _keyOf(
@@ -81,7 +102,7 @@ contract UniswapEX {
             _minReturn,
             _fee,
             _owner,
-            _salt
+            _witness
         );
 
         uint256 amount;
@@ -100,7 +121,7 @@ contract UniswapEX {
             _minReturn,
             _fee,
             _owner,
-            _salt,
+            _witness,
             amount
         );
     }
@@ -111,15 +132,23 @@ contract UniswapEX {
         uint256 _minReturn,
         uint256 _fee,
         address payable _owner,
-        bytes32 _salt
+        bytes calldata _witnesses
     ) external {
+        // Calculate witness using signature
+        // avoid front-run by requiring msg.sender to know
+        // the secret
+        address witness = SigUtils.ecrecover2(
+            keccak256(abi.encodePacked(msg.sender)),
+            _witnesses
+        );
+
         bytes32 key = _keyOf(
             _fromToken,
             _toToken,
             _minReturn,
             _fee,
             _owner,
-            _salt
+            witness
         );
 
         // Pull amount
@@ -159,7 +188,7 @@ contract UniswapEX {
             _minReturn,
             _fee,
             _owner,
-            _salt,
+            witness,
             msg.sender,
             amount,
             bought
@@ -173,7 +202,8 @@ contract UniswapEX {
         uint256 _minReturn,
         uint256 _fee,
         address payable _owner,
-        bytes32 _salt
+        bytes32 _secret,
+        address _witness
     ) external view returns (bytes memory) {
         return abi.encodeWithSelector(
             _fromToken.transfer.selector,
@@ -183,7 +213,7 @@ contract UniswapEX {
                 _minReturn,
                 _fee,
                 _owner,
-                _salt
+                _witness
             ),
             _amount,
             abi.encode(
@@ -192,7 +222,8 @@ contract UniswapEX {
                 _minReturn,
                 _fee,
                 _owner,
-                _salt
+                _secret,
+                _witness
             )
         );
     }
@@ -203,7 +234,8 @@ contract UniswapEX {
         uint256 _minReturn,
         uint256 _fee,
         address payable _owner,
-        bytes32 _salt
+        bytes32 _secret,
+        address _witness
     ) external pure returns (bytes memory) {
         return abi.encode(
             _fromToken,
@@ -211,19 +243,21 @@ contract UniswapEX {
             _minReturn,
             _fee,
             _owner,
-            _salt
+            _secret,
+            _witness
         );
     }
 
     function decodeOrder(
-        bytes calldata _data
-    ) external pure returns (
+        bytes memory _data
+    ) public pure returns (
         address fromToken,
         address toToken,
         uint256 minReturn,
         uint256 fee,
         address payable owner,
-        bytes32 salt
+        bytes32 secret,
+        address witness
     ) {
         (
             fromToken,
@@ -231,10 +265,19 @@ contract UniswapEX {
             minReturn,
             fee,
             owner,
-            salt
+            secret,
+            witness
         ) = abi.decode(
             _data,
-            (address, address, uint256, uint256, address, bytes32)
+            (
+                address,
+                address,
+                uint256,
+                uint256,
+                address,
+                bytes32,
+                address
+            )
         );
     }
 
@@ -244,7 +287,7 @@ contract UniswapEX {
         uint256 _minReturn,
         uint256 _fee,
         address payable _owner,
-        bytes32 _salt
+        address _witness
     ) external view returns (bool) {
         bytes32 key = _keyOf(
             _fromToken,
@@ -252,7 +295,7 @@ contract UniswapEX {
             _minReturn,
             _fee,
             _owner,
-            _salt
+            _witness
         );
 
         if (address(_fromToken) == ETH_ADDRESS) {
@@ -268,7 +311,7 @@ contract UniswapEX {
         uint256 _minReturn,
         uint256 _fee,
         address payable _owner,
-        bytes32 _salt
+        address _witness
     ) external view returns (bool) {
         bytes32 key = _keyOf(
             _fromToken,
@@ -276,7 +319,7 @@ contract UniswapEX {
             _minReturn,
             _fee,
             _owner,
-            _salt
+            _witness
         );
 
         // Pull amount
@@ -321,7 +364,7 @@ contract UniswapEX {
         uint256 _minReturn,
         uint256 _fee,
         address payable _owner,
-        bytes32 _salt
+        address _witness
     ) public view returns (address) {
         return _keyOf(
             _fromToken,
@@ -329,7 +372,7 @@ contract UniswapEX {
             _minReturn,
             _fee,
             _owner,
-            _salt
+            _witness
         ).getVault();
     }
 
@@ -393,7 +436,7 @@ contract UniswapEX {
         uint256 _minReturn,
         uint256 _fee,
         address payable _owner,
-        bytes32 _salt
+        address _witness
     ) private pure returns (bytes32) {
         return keccak256(
             abi.encode(
@@ -402,7 +445,7 @@ contract UniswapEX {
                 _minReturn,
                 _fee,
                 _owner,
-                _salt
+                _witness
             )
         );
     }
