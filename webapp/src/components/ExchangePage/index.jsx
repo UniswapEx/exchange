@@ -40,6 +40,7 @@ const TOKEN_TO_TOKEN = 2
 // Denominated in bips
 const ALLOWED_SLIPPAGE_DEFAULT = 100
 const TOKEN_ALLOWED_SLIPPAGE_DEFAULT = 100
+const SLIPPAGE_WARNING = '.3' // [30+%
 
 // Addresses
 const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
@@ -49,7 +50,7 @@ const TRANSFER_TX_LENGTH = 138
 const TX_PADDED_BYTES_BOILERPLATE = 128
 
 // Contract
-const CONTRACT_DEPLOYED_BLOCK = 8439826
+const CONTRACT_DEPLOYED_BLOCK = 8579313
 const TRANSFER_SELECTOR = '0xa9059cbb'
 const BALANCE_SELECTOR = '0x70a08231'
 const DEPOSIT_ORDER_EVENT_TOPIC0 = '0x294738b98bcebacf616fd72532d3d8d8d229807bf03b68b25681bfbbdb3d3fe5'
@@ -75,7 +76,7 @@ const DownArrow = styled(WrappedArrowDown)`
 
 const WrappedArrowRight = ({ clickable, active, ...rest }) => <ArrowDown {...rest} transform="rotate(-90)" />
 const RightArrow = styled(WrappedArrowRight)`
-  color: ${({ theme, active }) => (active ? theme.royalGreen : theme.chaliceGray)};
+  color: ${({ theme }) => (theme.royalGreen)};
   width: 0.625rem;
   height: 0.625rem;
   position: relative;
@@ -636,7 +637,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
           .sub(ethers.utils.bigNumberify(3).mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(15))))
       : undefined
 
-  const highSlippageWarning = percentSlippage && percentSlippage.gte(ethers.utils.parseEther('.2')) // [20+%
+  const highSlippageWarning = percentSlippage && percentSlippage.gte(ethers.utils.parseEther(SLIPPAGE_WARNING))
 
   const isValid = sending
     ? exchangeRate && inputError === null && independentError === null && recipientError === null
@@ -678,27 +679,10 @@ export default function ExchangePage({ initialCurrency, sending }) {
       toCurrency = outputCurrency
     }
     try {
-      const {privateKey, address } = ethers.Wallet.createRandom({ extraEntropy: ethers.utils.randomBytes(32) })
+      const { privateKey, address } = ethers.Wallet.createRandom({ extraEntropy: ethers.utils.randomBytes(32) })
       data = await (swapType === ETH_TO_TOKEN
-        ? method(
-            fromCurrency,
-            toCurrency,
-            minimumReturn,
-            ORDER_FEE,
-            account,
-            privateKey,
-            address
-          )
-        : await method(
-            fromCurrency,
-            toCurrency,
-            amount,
-            minimumReturn,
-            ORDER_FEE,
-            account,
-            privateKey,
-            address
-          ))
+        ? method(fromCurrency, toCurrency, minimumReturn, ORDER_FEE, account, privateKey, address)
+        : await method(fromCurrency, toCurrency, amount, minimumReturn, ORDER_FEE, account, privateKey, address))
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
         : new Promise(res =>
@@ -825,6 +809,14 @@ export default function ExchangePage({ initialCurrency, sending }) {
           {highSlippageWarning || customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
         </Button>
       </Flex>
+      {highSlippageWarning && (
+        <p className="slippage-warning">
+          <span role="img" aria-label="warning">
+            ⚠️
+          </span>
+          {t('highSlippageWarning', { percentage: 100 * SLIPPAGE_WARNING })}
+        </p>
+      )}
       <div>
         <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
         {isFetchingOrders ? (

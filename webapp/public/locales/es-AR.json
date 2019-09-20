@@ -72,5 +72,6 @@
   "label": "Etiqueta",
   "decimals": "Decimales",
   "enterTokenCont": "Ingresá una dirección de token para continuar",
-  "place": "Poner"
+  "place": "Ordenar",
+  "highSlippageWarning": "Diferencia mayor al {{ percentage }}% del precio actual"
 }
