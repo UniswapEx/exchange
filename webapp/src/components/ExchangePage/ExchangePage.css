@@ -1,3 +1,16 @@
+.slippage-warning {
+  width: 100%;
+  text-align: center;
+  color: inherit;
+  margin-top: -25px;
+  color: #f96600;
+  font-size: 14px;
+}
+
+.slippage-warning span {
+  margin-right: 5px;
+}
+
 .orders-title {
   font-size: 24px;
   font-weight: 400;
@@ -27,5 +40,5 @@
   max-width: 180px;
   margin: 15px auto 0;
   width: 35%;
-  padding: .7rem 1.7rem .7rem 1.7rem;
+  padding: 0.7rem 1.7rem 0.7rem 1.7rem;
 }

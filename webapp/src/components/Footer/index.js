@@ -77,8 +77,8 @@ export default function Footer() {
     <FooterFrame>
       <FooterElement>
         <Title>
-          <Link id="link" href="https://github.com/UniswapEx/exchange">
-            <h1 id="title">Docs</h1>
+          <Link id="link" href="https://github.com/UniswapEx/exchange#how-it-works">
+            <h1 id="title">How it works</h1>
           </Link>
           <Link id="link" href="https://github.com/UniswapEx/exchange">
             <h1 id="title">Code</h1>

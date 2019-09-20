@@ -5,6 +5,7 @@ import { BrowserRouter, Redirect, Route, Switch } from 'react-router-dom'
 import Web3ReactManager from '../components/Web3ReactManager'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import NavigationTabs from '../components/NavigationTabs'
 
 import { isAddress } from '../utils'
 
@@ -57,6 +58,7 @@ export default function App() {
               <Web3ReactManager>
                 <BrowserRouter>
                   {/* this Suspense is for route code-splitting */}
+                  <NavigationTabs />
                   <Suspense fallback={null}>
                     <Switch>
                       <Route exact strict path="/order" component={Swap} />

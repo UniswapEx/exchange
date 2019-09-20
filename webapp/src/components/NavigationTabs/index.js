@@ -1,8 +1,8 @@
 import React, { useCallback } from 'react'
-import { withRouter, NavLink } from 'react-router-dom'
+import { withRouter } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
-import { transparentize, darken } from 'polished'
+import { transparentize } from 'polished'
 
 import { useBodyKeyDown } from '../../hooks'
 import { useBetaMessageManager } from '../../contexts/LocalStorage'
@@ -44,55 +44,6 @@ const BetaMessage = styled.div`
   }
 `
 
-const Tabs = styled.div`
-  ${({ theme }) => theme.flexRowNoWrap}
-  align-items: center;
-  height: 2.5rem;
-  background-color: ${({ theme }) => theme.concreteGray};
-  border-radius: 3rem;
-  /* border: 1px solid ${({ theme }) => theme.mercuryGray}; */
-  margin-bottom: 1rem;
-`
-
-const activeClassName = 'ACTIVE'
-
-const StyledNavLink = styled(NavLink).attrs({
-  activeClassName
-})`
-  ${({ theme }) => theme.flexRowNoWrap}
-  align-items: center;
-  justify-content: center;
-  height: 2.5rem;
-  border: 1px solid ${({ theme }) => transparentize(1, theme.mercuryGray)};
-  flex: 1 0 auto;
-  border-radius: 3rem;
-  outline: none;
-  cursor: pointer;
-  text-decoration: none;
-  color: ${({ theme }) => theme.doveGray};
-  font-size: 1rem;
-  box-sizing: border-box;
-
-  &.${activeClassName} {
-    background-color: ${({ theme }) => theme.inputBackground};
-    border-radius: 3rem;
-    border: 1px solid ${({ theme }) => theme.mercuryGray};
-    box-shadow: 0 4px 8px 0 ${({ theme }) => transparentize(0.95, theme.shadowColor)};
-    box-sizing: border-box;
-    font-weight: 500;
-    color: ${({ theme }) => theme.royalGreen};
-    :hover {
-      /* border: 1px solid ${({ theme }) => darken(0.1, theme.mercuryGray)}; */
-      background-color: ${({ theme }) => darken(0.01, theme.inputBackground)};
-    }
-  }
-
-  :hover,
-  :focus {
-    color: ${({ theme }) => darken(0.1, theme.royalGreen)};
-  }
-`
-
 function NavigationTabs({ location: { pathname }, history }) {
   const { t } = useTranslation()
 
@@ -117,13 +68,6 @@ function NavigationTabs({ location: { pathname }, history }) {
 
   return (
     <>
-      <Tabs>
-        {tabOrder.map(({ path, textKey, regex }) => (
-          <StyledNavLink key={path} to={path} isActive={(_, { pathname }) => pathname.match(regex)}>
-            {t(textKey)}
-          </StyledNavLink>
-        ))}
-      </Tabs>
       {showBetaMessage && (
         <BetaMessage onClick={dismissBetaMessage}>
           <span role="img" aria-label="warning">
