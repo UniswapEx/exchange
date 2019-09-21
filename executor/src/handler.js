@@ -34,9 +34,8 @@ module.exports = class Handler {
   }
 
   async decode(txData) {
-    txData = txData.replace('0x', '');
     const data = txData > 448 ? `0x${txData.substr(-448)}` : txData;
-    const decoded = await this.uniswap_ex.methods.decodeOrder(`0x${data}`).call();
+    const decoded = await this.uniswap_ex.methods.decodeOrder(`${data}`).call();
     return decoded;
   }
 
@@ -85,10 +84,10 @@ module.exports = class Handler {
       ).send(
           {from: account.address, gas: estimatedGas, gasPrice: gasPrice}
       );
-      logger.info('Filled order, txHash: ' + tx.transactionHash);
+      logger.info(`Filled order, txHash: ${tx.transactionHash}`);
       return tx.transactionHash;
     } catch (e) {
-      logger.warning(`Error filling order: ${e.message}`);
+      logger.warn(`Error filling order: ${e.message}`);
       return undefined;
     }
   }

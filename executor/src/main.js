@@ -34,8 +34,8 @@ async function main() {
 
   let pk;
 
-  if (process.env.PK != undefined) {
-    pk = process.env.PK;
+  if (argv.pk) {
+    pk = argv.pk;
   } else {
     pk = await util.promisify(read)({
       prompt: 'Private key: ',
