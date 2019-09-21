@@ -9,7 +9,7 @@ module.exports = class Monitor {
     let lastBlock = 0;
     while (true) {
       const newBlock = await retry(this.w3.eth.getBlockNumber());
-      if (newBlock != lastBlock) {
+      if (newBlock > lastBlock) {
         await callback(newBlock);
         lastBlock = newBlock;
       }

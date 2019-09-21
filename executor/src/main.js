@@ -1,14 +1,33 @@
 const Web3 = require('web3');
 
+const OrdersManager = require('./orderManagers/ordersManager.js');
 const Monitor = require('./monitor.js');
 const Conector = require('./conector.js');
 const Handler = require('./handler.js');
 const read = require('read');
 const util = require('util');
 const retry = require('./retry.js');
+const logger = require('./logger.js');
+
 
 async function main() {
-  const web3 = new Web3(process.env.NODE);
+  const argv = require('yargs')
+      .env('UNISWAPEX_')
+      .option('n', {
+        alias: 'node',
+        required: true,
+        describe: 'Ethereum node',
+        type: 'string',
+      })
+      .option('pk', {
+        alias: 'private-key',
+        required: false,
+        describe: 'Private key of the relayer',
+        type: 'string',
+      })
+      .argv;
+
+  const web3 = new Web3(argv.node);
   const conector = new Conector(web3);
   const monitor = new Monitor(web3);
   const handler = new Handler(web3);
@@ -30,47 +49,46 @@ async function main() {
   const account = web3.eth.accounts.privateKeyToAccount(pk);
   web3.eth.accounts.wallet.add(account);
 
-  console.log(`Using account ${account.address}`);
+  logger.info(`Using account ${account.address}`);
 
-  let rawOrders = [];
-  const decodedOrders = {};
-  const filledOrders = [];
+  const manager = new OrdersManager();
+
+  // Monitor new orders
+  monitor.onBlock(async (newBlock) => {
+    logger.verbose(`Looking for new orders until block ${newBlock}`);
+    await conector.getOrders(newBlock, async (rawOrder) => {
+      logger.debug(`Processing raw order ${rawOrder}`);
+      const decoded = await retry(handler.decode(rawOrder));
+      logger.debug(`Processed order ${decoded.owner} ${decoded.fromToken} -> ${decoded.toToken}`);
+      await manager.newOrder(decoded);
+    });
+  });
 
   monitor.onBlock(async (newBlock) => {
-    const newOrders = await conector.getOrders(newBlock);
-    rawOrders = rawOrders.concat(newOrders.filter((o) => rawOrders.indexOf(o) < 0));
+    logger.verbose(`Handling pending orders for block ${newBlock}`);
+    const allOrders = await manager.getPendingOrders();
+    for (const i in allOrders) {
+      const order = allOrders[i];
+      const exists = await retry(handler.exists(order));
+      logger.verbose(`Loaded order by ${order.owner}: ${order.fromToken} -> ${order.toToken}`);
 
-    // Decode orders
-    for (const i in rawOrders) {
-      const rawOrder = rawOrders[i];
-      if (decodedOrders[rawOrder] == undefined) {
-        decodedOrders[rawOrder] = await retry(handler.decode(rawOrder));
-      }
-    };
-
-    const openOrders = [];
-
-    // Filter open orders
-    for (const i in rawOrders) {
-      const rawOrder = rawOrders[i];
-      if (await retry(handler.exists(decodedOrders[rawOrder]))) {
-        openOrders.push(decodedOrders[rawOrder]);
-      }
-    };
-
-    // Find filleable orders
-    for (const i in openOrders) {
-      const order = openOrders[i];
-
-      if (filledOrders.indexOf(order) == -1 && await retry(handler.isReady(order))) {
-        const result = await retry(handler.fillOrder(order, account), 4);
-        if (result != undefined) {
-          filledOrders.push(order);
+      if (exists) {
+        // Check if order is ready to be filled and it's still pending
+        if (await retry(handler.isReady(order)) && await manager.isPending(order)) {
+          // Fill order, retry only 4 times
+          const result = await retry(handler.fillOrder(order, account), 4);
+          if (result != undefined) {
+            manager.setFilled(order, result);
+          }
+        } else {
+          logger.verbose(`Order not ready to be filled, ${order.owner}: ${order.fromToken} -> ${order.toToken}`);
         }
       } else {
-        console.log('not ready');
+        logger.verbose('Order no long exists, removing it from pool');
+        // Set order as filled
+        await manager.setFilled(order, 'unknown');
       }
-    };
+    }
   });
 }
 

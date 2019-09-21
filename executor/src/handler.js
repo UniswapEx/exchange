@@ -1,5 +1,6 @@
 const uniswapExAbi = require('./interfaces/uniswapEx.js');
 const eutils = require('ethereumjs-util');
+const logger = require('./logger.js');
 const env = require('../env.js');
 
 module.exports = class Handler {
@@ -33,8 +34,9 @@ module.exports = class Handler {
   }
 
   async decode(txData) {
+    txData = txData.replace('0x', '');
     const data = txData > 448 ? `0x${txData.substr(-448)}` : txData;
-    const decoded = await this.uniswap_ex.methods.decodeOrder(data).call();
+    const decoded = await this.uniswap_ex.methods.decodeOrder(`0x${data}`).call();
     return decoded;
   }
 
@@ -68,7 +70,7 @@ module.exports = class Handler {
 
     if (gasPrice * estimatedGas > order.fee) {
       // Fee is too low
-      console.log('Skip filling order, fee is not enought');
+      logger.verbose(`Skip, fee is not enought ${order.owner} -> fee: ${order.fee} cost: ${gasPrice * estimatedGas}`);
       return undefined;
     }
 
@@ -83,10 +85,10 @@ module.exports = class Handler {
       ).send(
           {from: account.address, gas: estimatedGas, gasPrice: gasPrice}
       );
-      console.log('Filled order, txHash: ' + tx.transactionHash);
+      logger.info('Filled order, txHash: ' + tx.transactionHash);
       return tx.transactionHash;
     } catch (e) {
-      console.log('Error message: ' + e.message);
+      logger.warning(`Error filling order: ${e.message}`);
       return undefined;
     }
   }

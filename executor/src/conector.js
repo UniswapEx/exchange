@@ -1,6 +1,7 @@
 const factoryAbi = require('./interfaces/uniswapFactory.js');
 const uniswapexAbi = require('./interfaces/uniswapEx.js');
 const ierc20Abi = require('./interfaces/ierc20.js');
+const logger = require('./logger.js');
 const retry = require('./retry.js');
 const env = require('../env.js');
 
@@ -14,6 +15,40 @@ module.exports = class Conector {
     this.uniswap_token_cache = {};
   }
 
+  async getSafePastEvents(contract, name, fromBlock, toBlock) {
+    try {
+      return await contract.getPastEvents(name, {
+        fromBlock: fromBlock,
+        toBlock: toBlock,
+      });
+    } catch (e) {
+      if (fromBlock != toBlock && e.toString().includes('more than 10000 results')) {
+        const pivot = Math.floor(fromBlock + (toBlock - fromBlock) / 2);
+        logger.debug(`${contract._address} - Split event query in two ${fromBlock}-${toBlock} -> ${pivot}`);
+
+        const a = await this.getSafePastEvents(
+            contract,
+            name,
+            fromBlock,
+            pivot
+        );
+
+        const b = await this.getSafePastEvents(
+            contract,
+            name,
+            pivot,
+            toBlock
+        );
+
+        const result = a.concat(b);
+
+        return result;
+      } else {
+        throw e;
+      }
+    }
+  }
+
   async getUniswapAddress(i) {
     if (this.uniswap_token_cache[i] != undefined) {
       return this.uniswap_token_cache[i];
@@ -24,24 +59,25 @@ module.exports = class Conector {
     return tokenAddr;
   }
 
-  async getOrders(toBlock) {
+  async getOrders(toBlock, onRawOrder) {
     toBlock = Math.min(toBlock, this.last_monitored + MAX_JUMP);
 
     const total = await retry(this.uni_factory.methods.tokenCount().call());
 
-    const orders = [];
     let tokensChecked = 0;
 
     // Load ETH orders
-    const events = await retry(this.uniswap_ex.getPastEvents('DepositETH', {
-      fromBlock: this.last_monitored,
-      toBlock: toBlock,
-    }));
+    const events = await retry(this.getSafePastEvents(
+        this.uniswap_ex,
+        'DepositETH',
+        this.last_monitored,
+        toBlock
+    ));
 
     for (const i in events) {
       const event = events[i];
-      console.log(`Found ETH Order ${event.transactionHash}`);
-      orders.push(event.returnValues._data);
+      logger.info(`Found ETH Order ${event.transactionHash}`);
+      await onRawOrder(event.returnValues._data);
     }
 
     // Load events of all Uniswap tokens
@@ -54,12 +90,14 @@ module.exports = class Conector {
         continue;
       }
 
-      console.log(`${tokensChecked}/${total} - Monitoring token ${tokenAddr}`);
+      logger.debug(`${tokensChecked}/${total} - Monitoring token ${tokenAddr}`);
       const token = new this.w3.eth.Contract(ierc20Abi, tokenAddr);
-      const events = await retry(token.getPastEvents('Transfer', {
-        fromBlock: this.last_monitored,
-        toBlock: toBlock,
-      }));
+      const events = await retry(this.getSafePastEvents(
+          token,
+          'Transfer',
+          this.last_monitored,
+          toBlock
+      ));
 
       const checked = [];
       let checkedCount = 0;
@@ -77,10 +115,10 @@ module.exports = class Conector {
         const fullTx = await retry(this.w3.eth.getTransaction(tx));
         const txData = fullTx.input;
 
-        console.log(`${checkedCount}/${events.length} - Check TX ${tx}`);
+        logger.debug(`${checkedCount}/${events.length} - Check TX ${tx}`);
         if (txData.startsWith('0xa9059cbb') && txData.length == 714) {
-          orders.push(txData);
-          console.log(`Found order TX ${tx}`);
+          logger.info(`Found token order ${token._address} ${tx}`);
+          await onRawOrder(txData);
         }
 
         checked.push(tx);
@@ -88,6 +126,5 @@ module.exports = class Conector {
     }
 
     this.last_monitored = toBlock;
-    return orders;
   }
 };

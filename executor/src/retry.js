@@ -1,4 +1,5 @@
 const retry = require('async-retry');
+const logger = require('./logger.js');
 
 module.exports = function retryAsync(_async, retries = 10) {
   return retry(
@@ -6,7 +7,7 @@ module.exports = function retryAsync(_async, retries = 10) {
       {
         retries: retries,
         onRetry: (err) => {
-          console.log(`${new Date().getTime()} - Received error ${err.toString().split('\n')[0]}`);
+          logger.warn(`${new Date().getTime()} - Received error ${err.toString().split('\n')[0]}`);
         },
       }
   );
