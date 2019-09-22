@@ -49,42 +49,43 @@ async function main() {
   const account = web3.eth.accounts.privateKeyToAccount(pk);
   web3.eth.accounts.wallet.add(account);
 
-  logger.info(`Using account ${account.address}`);
+  logger.info(`Main: Using account ${account.address}`);
 
   const manager = new OrdersManager();
 
   // Monitor new orders
   monitor.onBlock(async (newBlock) => {
-    logger.verbose(`Looking for new orders until block ${newBlock}`);
-    await conector.getOrders(newBlock, async (rawOrder) => {
-      logger.debug(`Processing raw order ${rawOrder}`);
-      const decoded = await retry(handler.decode(rawOrder));
-      logger.debug(`Processed order ${decoded.owner} ${decoded.fromToken} -> ${decoded.toToken}`);
+    logger.verbose(`Main: Looking for new orders until block ${newBlock}`);
+    await conector.getOrders(newBlock, async (rawOrder, txHash) => {
+      logger.debug(`Main: Processing raw order ${rawOrder}`);
+      const decoded = await retry(handler.decode(rawOrder, txHash));
+      logger.debug(`Main: Processed order ${decoded.owner} ${decoded.fromToken} -> ${decoded.toToken}`);
       await manager.newOrder(decoded);
     });
   });
 
   monitor.onBlock(async (newBlock) => {
-    logger.verbose(`Handling pending orders for block ${newBlock}`);
+    logger.verbose(`Main: Handling pending orders for block ${newBlock}`);
     const allOrders = await manager.getPendingOrders();
     for (const i in allOrders) {
       const order = allOrders[i];
       const exists = await retry(handler.exists(order));
-      logger.verbose(`Loaded order by ${order.owner}: ${order.fromToken} -> ${order.toToken}`);
+      logger.debug(`Main: Loaded order ${order.tx}`);
 
       if (exists) {
         // Check if order is ready to be filled and it's still pending
         if (await retry(handler.isReady(order)) && await manager.isPending(order)) {
+          logger.verbose(`Main: Filling order ${order.tx}`);
           // Fill order, retry only 4 times
           const result = await retry(handler.fillOrder(order, account), 4);
           if (result != undefined) {
             manager.setFilled(order, result);
           }
         } else {
-          logger.verbose(`Order not ready to be filled, ${order.owner}: ${order.fromToken} -> ${order.toToken}`);
+          logger.debug(`Main: Order not ready to be filled ${order.tx}`);
         }
       } else {
-        logger.verbose('Order no long exists, removing it from pool');
+        logger.verbose(`Main: Order ${order.tx} no long exists, removing it from pool`);
         // Set order as filled
         await manager.setFilled(order, 'unknown');
       }

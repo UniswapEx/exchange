@@ -11,7 +11,7 @@ module.exports = class Handler {
   }
 
   async exists(order) {
-    return await this.uniswap_ex.methods.existOrder(
+    const exists = await this.uniswap_ex.methods.existOrder(
         order.fromToken,
         order.toToken,
         order.minReturn,
@@ -19,11 +19,12 @@ module.exports = class Handler {
         order.owner,
         order.witness
     ).call();
+    logger.debug(`Handler: Order ${order.tx} does${exists ? '' : ' not'} exists`);
+    return exists;
   }
 
   async isReady(order) {
-    // TODO: Check if order is valid
-    return await this.uniswap_ex.methods.canExecuteOrder(
+    const ready = await this.uniswap_ex.methods.canExecuteOrder(
         order.fromToken,
         order.toToken,
         order.minReturn,
@@ -31,11 +32,22 @@ module.exports = class Handler {
         order.owner,
         order.witness
     ).call();
+    logger.debug(`Handler: Order ${order.tx} is${ready ? '' : ' not'} ready`);
+    return ready;
   }
 
-  async decode(txData) {
+  async decode(txData, hash) {
+    logger.debug(`Handler: Decodeding ${hash}, raw: ${txData}`);
     const data = txData > 448 ? `0x${txData.substr(-448)}` : txData;
     const decoded = await this.uniswap_ex.methods.decodeOrder(`${data}`).call();
+    decoded.tx = hash;
+    logger.debug(`Handler: Decoded ${hash} fromToken ${decoded.fromToken}`);
+    logger.debug(`Handler: Decoded ${hash} toToken   ${decoded.toToken}`);
+    logger.debug(`Handler: Decoded ${hash} minReturn ${decoded.minReturn}`);
+    logger.debug(`Handler: Decoded ${hash} fee       ${decoded.fee}`);
+    logger.debug(`Handler: Decoded ${hash} owner     ${decoded.owner}`);
+    logger.debug(`Handler: Decoded ${hash} secret    ${decoded.secret}`);
+    logger.debug(`Handler: Decoded ${hash} witness   ${decoded.witness}`);
     return decoded;
   }
 
@@ -54,7 +66,11 @@ module.exports = class Handler {
   async fillOrder(order, account) {
     const gasPrice = await this.w3.eth.getGasPrice();
 
+    logger.debug(`Handler: Loaded gas price for ${order.tx} -> ${gasPrice}`);
+
     const witnesses = this.sign(account.address, order.secret);
+
+    logger.debug(`Handler: Witnesses for ${order.tx} -> ${witnesses}`);
 
     const estimatedGas = parseInt(await this.uniswap_ex.methods.executeOrder(
         order.fromToken,
@@ -67,9 +83,11 @@ module.exports = class Handler {
         {from: account.address}
     ));
 
+    logger.debug(`Handler: Estimated gas for ${order.tx} -> ${estimatedGas}`);
+
     if (gasPrice * estimatedGas > order.fee) {
       // Fee is too low
-      logger.verbose(`Skip, fee is not enought ${order.owner} -> fee: ${order.fee} cost: ${gasPrice * estimatedGas}`);
+      logger.verbose(`Handler: Skip, fee is not enought ${order.tx} cost: ${gasPrice * estimatedGas}`);
       return undefined;
     }
 
@@ -84,10 +102,11 @@ module.exports = class Handler {
       ).send(
           {from: account.address, gas: estimatedGas, gasPrice: gasPrice}
       );
-      logger.info(`Filled order, txHash: ${tx.transactionHash}`);
+
+      logger.info(`Handler: Filled ${order.tx} order, txHash: ${tx.transactionHash}`);
       return tx.transactionHash;
     } catch (e) {
-      logger.warn(`Error filling order: ${e.message}`);
+      logger.warn(`Handler: Error filling order ${order.tx}: ${e.message}`);
       return undefined;
     }
   }

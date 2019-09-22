@@ -5,7 +5,6 @@ const logger = require('./logger.js');
 const retry = require('./retry.js');
 const env = require('../env.js');
 
-const MAX_JUMP = 10000000;
 module.exports = class Conector {
   constructor(w3) {
     this.w3 = w3;
@@ -24,7 +23,7 @@ module.exports = class Conector {
     } catch (e) {
       if (fromBlock != toBlock && e.toString().includes('more than 10000 results')) {
         const pivot = Math.floor(fromBlock + (toBlock - fromBlock) / 2);
-        logger.debug(`${contract._address} - Split event query in two ${fromBlock}-${toBlock} -> ${pivot}`);
+        logger.debug(`Connector: ${contract._address} - Split event query in two ${fromBlock}-${toBlock} -> ${pivot}`);
 
         const a = await this.getSafePastEvents(
             contract,
@@ -60,7 +59,12 @@ module.exports = class Conector {
   }
 
   async getOrders(toBlock, onRawOrder) {
-    toBlock = Math.min(toBlock, this.last_monitored + MAX_JUMP);
+    if (toBlock <= this.last_monitored) {
+      logger.debug(`Connector: skip getOrders, ${this.last_monitored}-${toBlock}`);
+      return;
+    }
+
+    logger.debug(`Connector: getOrders, ${this.last_monitored}-${toBlock}`);
 
     const total = await retry(this.uni_factory.methods.tokenCount().call());
 
@@ -74,10 +78,12 @@ module.exports = class Conector {
         toBlock
     ));
 
+    logger.debug(`Connector: Found ${events.length} ETH orders events`);
+
     for (const i in events) {
       const event = events[i];
-      logger.info(`Found ETH Order ${event.transactionHash}`);
-      await onRawOrder(event.returnValues._data);
+      logger.info(`Connector: Found ETH Order ${event.transactionHash}`);
+      await onRawOrder(event.returnValues._data, event.transactionHash);
     }
 
     // Load events of all Uniswap tokens
@@ -87,10 +93,11 @@ module.exports = class Conector {
 
       // Skip USDT
       if (tokenAddr.toLowerCase() == '0xdac17f958d2ee523a2206206994597c13d831ec7') {
+        logger.debug(`Connector: Skip token USDT`);
         continue;
       }
 
-      logger.debug(`${tokensChecked}/${total} - Monitoring token ${tokenAddr}`);
+      logger.debug(`Connector: ${tokensChecked}/${total} - Monitoring token ${tokenAddr}`);
       const token = new this.w3.eth.Contract(ierc20Abi, tokenAddr);
       const events = await retry(this.getSafePastEvents(
           token,
@@ -98,6 +105,8 @@ module.exports = class Conector {
           this.last_monitored,
           toBlock
       ));
+
+      logger.debug(`Connector: Found ${events.length} token transfer events for ${tokenAddr}`);
 
       const checked = [];
       let checkedCount = 0;
@@ -115,16 +124,17 @@ module.exports = class Conector {
         const fullTx = await retry(this.w3.eth.getTransaction(tx));
         const txData = fullTx.input;
 
-        logger.debug(`${checkedCount}/${events.length} - Check TX ${tx}`);
+        logger.debug(`Connector: ${checkedCount}/${events.length} - Check TX ${tx}`);
         if (txData.startsWith('0xa9059cbb') && txData.length == 714) {
-          logger.info(`Found token order ${token._address} ${tx}`);
-          await onRawOrder(txData);
+          logger.info(`Connector: Found token order ${token._address} ${tx}`);
+          await onRawOrder(txData, tx);
         }
 
         checked.push(tx);
       }
     }
 
+    logger.info(`Connector: Finished getOrders for range ${this.last_monitored}-${toBlock}`);
     this.last_monitored = toBlock;
   }
 };
