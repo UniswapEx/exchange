@@ -88,5 +88,6 @@
   "placeAnyway": "Place anyway",
   "cancel": "Cancel",
   "noOpenOrders": "No open orders",
-  "fetchingOrders": "Loading open orders"
+  "fetchingOrders": "Loading open orders",
+  "enoughAmountToCoverFees": "Insufficient amount to cover the relayer fee: {{ fee }}"
 }
