@@ -665,10 +665,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
     independentField === INPUT ? independentValueParsed : dependentValue,
     inputReserveETH,
     inputReserveToken,
-    inputDecimals,
-    outputReserveETH,
-    outputReserveToken,
-    outputDecimals
+    inputDecimals
   )
 
   const isValid = sending
