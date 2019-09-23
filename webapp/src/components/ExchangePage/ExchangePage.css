@@ -1,10 +1,18 @@
-.slippage-warning {
+.slippage-warning,
+.fee-error {
   width: 100%;
   text-align: center;
   color: inherit;
   margin-top: -25px;
   color: #f96600;
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fee-error {
+  color: #ff6871;
 }
 
 .slippage-warning span {
@@ -20,6 +28,14 @@
   font-size: 14px;
   color: #808080;
   margin: 3px 0;
+  display: flex;
+  align-content: center;
+}
+
+.order p img,
+.order p svg,
+.fee-error svg {
+  margin-left: 3px;
 }
 
 .tokens {

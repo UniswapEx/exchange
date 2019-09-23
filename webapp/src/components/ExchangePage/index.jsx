@@ -76,7 +76,7 @@ const DownArrow = styled(WrappedArrowDown)`
 
 const WrappedArrowRight = ({ clickable, active, ...rest }) => <ArrowDown {...rest} transform="rotate(-90)" />
 const RightArrow = styled(WrappedArrowRight)`
-  color: ${({ theme }) => (theme.royalGreen)};
+  color: ${({ theme }) => theme.royalGreen};
   width: 0.625rem;
   height: 0.625rem;
   position: relative;
@@ -383,6 +383,27 @@ async function decodeOrder(uniswapEXContract, data) {
   }
 }
 
+function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, inputDecimals) {
+  if (!value || !swapType) {
+    return true
+  }
+
+  const orderFee = ethers.utils.bigNumberify(ORDER_FEE)
+  let ethValue
+
+  if (swapType === ETH_TO_TOKEN) {
+    ethValue = value
+  } else {
+    const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(18))
+    const ethRate = getExchangeRate(inputReserveToken, inputDecimals, inputReserveETH, 18)
+    if (!ethRate) {
+      return true
+    }
+    ethValue = value.mul(ethRate).div(factor)
+  }
+  return ethValue.gt(orderFee)
+}
+
 export default function ExchangePage({ initialCurrency, sending }) {
   const { t } = useTranslation()
   const { account } = useWeb3Context()
@@ -639,6 +660,14 @@ export default function ExchangePage({ initialCurrency, sending }) {
 
   const highSlippageWarning = percentSlippage && percentSlippage.gte(ethers.utils.parseEther(SLIPPAGE_WARNING))
 
+  const enoughAmountToCoverFees = canCoverFees(
+    swapType,
+    independentField === INPUT ? independentValueParsed : dependentValue,
+    inputReserveETH,
+    inputReserveToken,
+    inputDecimals
+  )
+
   const isValid = sending
     ? exchangeRate && inputError === null && independentError === null && recipientError === null
     : exchangeRate && inputError === null && independentError === null
@@ -802,9 +831,9 @@ export default function ExchangePage({ initialCurrency, sending }) {
       </OversizedPanel>
       <Flex>
         <Button
-          disabled={!isValid || customSlippageError === 'invalid'}
+          disabled={!isValid || customSlippageError === 'invalid' || !enoughAmountToCoverFees}
           onClick={onPlace}
-          warning={highSlippageWarning || customSlippageError === 'warning'}
+          warning={highSlippageWarning || customSlippageError === 'warning' || !enoughAmountToCoverFees}
         >
           {highSlippageWarning || customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
         </Button>
@@ -815,6 +844,14 @@ export default function ExchangePage({ initialCurrency, sending }) {
             ⚠️
           </span>
           {t('highSlippageWarning', { percentage: 100 * SLIPPAGE_WARNING })}
+        </p>
+      )}
+      {!enoughAmountToCoverFees && (
+        <p className="fee-error">
+          <span role="img" aria-label="error">
+            💸
+          </span>
+          {t('enoughAmountToCoverFees', { fee: ORDER_FEE / 1e18 })} <TokenLogo address={'ETH'} />
         </p>
       )}
       <div>
@@ -856,9 +893,15 @@ export default function ExchangePage({ initialCurrency, sending }) {
                       </Aligner>
                     </CurrencySelect>
                   </div>
-                  <p>{`Amount: ${ethers.utils.formatUnits(order.amount, 18)} ${allTokens[fromToken] ? allTokens[fromToken].symbol : fromToken}`}</p>
-                  <p>{`Min return: ${ethers.utils.formatUnits(order.minReturn, 18)} ${allTokens[toToken] ? allTokens[toToken].symbol : toToken}`}</p>
-                  <p>{`Fee: ${ethers.utils.formatUnits(order.fee, 18)} ETH`}</p>
+                  <p>
+                    {`Amount: ${ethers.utils.formatUnits(order.amount, 18)}`} <TokenLogo address={fromToken} />
+                  </p>
+                  <p>
+                    {`Min return: ${ethers.utils.formatUnits(order.minReturn, 18)}`} <TokenLogo address={toToken} />
+                  </p>
+                  <p>
+                    {`Fee: ${ethers.utils.formatUnits(order.fee, 18)}`} <TokenLogo address={'ETH'} />
+                  </p>
                   <Button className="cta" onClick={() => onCancel(order)}>
                     {t('cancel')}
                   </Button>
