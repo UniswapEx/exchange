@@ -770,8 +770,6 @@ export default function ExchangePage({ initialCurrency, sending }) {
   ])
 
   const [inverted, setInverted] = useState(false)
-  const exchangeRate = getExchangeRate(inputValueParsed, inputDecimals, outputValueParsed, outputDecimals)
-  const exchangeRateInverted = getExchangeRate(inputValueParsed, inputDecimals, outputValueParsed, outputDecimals, true)
 
   const marketRate = getMarketRate(
     swapType,
@@ -782,6 +780,9 @@ export default function ExchangePage({ initialCurrency, sending }) {
     outputReserveToken,
     outputDecimals
   )
+
+  const exchangeRate = marketRate
+  const exchangeRateInverted = flipRate(exchangeRate)
 
   const percentSlippage =
     exchangeRate && marketRate
@@ -929,7 +930,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
       <CurrencyInputPanel
         title={t('rate')}
         showCurrencySelector={false}
-        extraText={exchangeRate ?
+        extraText={inverseRateInputSymbol && inverseRate && inverseRateOutputSymbol ?
             `1 ${inverseRateInputSymbol} = ${amountFormatter(inverseRate, 18, 4, false)} ${inverseRateOutputSymbol}` :
             '-'
         }

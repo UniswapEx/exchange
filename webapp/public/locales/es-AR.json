@@ -18,7 +18,7 @@
   "selectToken": "Seleccioná un token",
   "searchOrPaste": "Buscar Token o Pegar Dirección",
   "noExchange": "No se encontró la divisa",
-  "exchangeRate": "Tasa de Cambio",
+  "exchangeRate": "Tasa de Cambio Actual",
   "enterValueCont": "Ingresá un valor en {{ missingCurrencyValue }} para continuar.",
   "selectTokenCont": "Seleccioná un token para continuar.",
   "noLiquidity": "Sin liquidez.",
