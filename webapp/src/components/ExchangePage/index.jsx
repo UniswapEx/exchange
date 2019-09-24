@@ -257,7 +257,7 @@ function swapStateReducer(state, action) {
       return {
         ...state,
         independentValue: field !== RATE ? value : independentValue,
-        dependentValue: dependentValue,
+        dependentValue: Number(value) === Number(independentValue) ? dependentValue : '',
         independentField: field,
         inputRateValue: field === RATE ? value : rateValue,
         prevIndependentField: independentField === field ? prevIndependentField : independentField
@@ -441,8 +441,8 @@ function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, input
 }
 
 // TODO Move this to standalone helper
-Number.prototype.toFixedSpecial = function(n) {
-  var str = this.toFixed(n)
+function toFixedSpecial (num, decimals) {
+  var str = num.toFixed(decimals)
   if (str.indexOf('e+') < 0) return str
 
   // if number is in scientific notation, pick (b)ase and (p)ower
@@ -454,7 +454,7 @@ Number.prototype.toFixedSpecial = function(n) {
         return p + Array(b - p.length + 2).join(0)
       }) +
     '.' +
-    Array(n + 1).join(0)
+    Array(decimals + 1).join(0)
   return r.replace('.', '')
 }
 
@@ -468,7 +468,6 @@ export default function ExchangePage({ initialCurrency, sending }) {
     independentValue,
     dependentValue,
     independentField,
-    prevIndependentField,
     inputCurrency,
     outputCurrency,
     rateOp,
@@ -535,28 +534,32 @@ export default function ExchangePage({ initialCurrency, sending }) {
 
   const [rateParsed, setRateParsed] = useState()
 
-  let inputValueParsed
-  let inputValueFormatted
+  const inputValueParsed = independentField === INPUT ? independentValueParsed : inputValue
+  const inputValueFormatted = independentField === INPUT ? independentValue : amountFormatter(inputValue, 18, Math.min(4, 18), false)
+
   let outputValueFormatted
   let outputValueParsed
   let rateFormatted = rateParsed
+
 
   switch (independentField) {
     case OUTPUT:
       outputValueParsed = independentValueParsed
       outputValueFormatted = independentValue
-      if (!rateParsed || !outputValueParsed || Number(rateParsed) === 0 || Number(outputValueParsed) === 0) {
-        inputValueParsed = ''
-        inputValueFormatted = ''
-      } else {
-        const inputValueRaw = rateOp === RATE_OP_DIV ? outputValueParsed / rateParsed : outputValueParsed / rateParsed
-        inputValueParsed = ethers.utils.bigNumberify(inputValueRaw.toFixedSpecial(0))
-        inputValueFormatted = amountFormatter(inputValueParsed, inputDecimals, inputDecimals, 4)
-      }
+      // if (!rateParsed || !outputValueParsed || Number(rateParsed) === 0 || Number(outputValueParsed) === 0) {
+      //   inputValueParsed = ''
+      //   inputValueFormatted = ''
+      // } else {
+      //   const inputValueRaw = rateOp === RATE_OP_DIV ? outputValueParsed / rateParsed : outputValueParsed / rateParsed
+      //   inputValueParsed = ethers.utils.bigNumberify(inputValueRaw.toFixedSpecial(0))
+      //   inputValueFormatted = amountFormatter(inputValueParsed, inputDecimals, inputDecimals, 4)
+      // }
+      rateFormatted =
+      rateOp === RATE_OP_DIV ? inputValueFormatted / outputValueFormatted : outputValueFormatted / inputValueFormatted
       break
     case RATE:
-      inputValueParsed = prevIndependentField === OUTPUT ? dependentValue : independentValueParsed
-      inputValueFormatted = amountFormatter(inputValueParsed, inputDecimals, inputDecimals, 4)
+      // inputValueParsed = prevIndependentField === OUTPUT ? dependentValue : independentValueParsed
+      // inputValueFormatted = amountFormatter(inputValueParsed, inputDecimals, inputDecimals, 4)
 
       if (!inputRateValue || Number(inputRateValue) === 0) {
         outputValueParsed = ''
@@ -564,7 +567,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
       } else {
         const outputValueRaw =
           rateOp === RATE_OP_DIV ? inputValueParsed / inputRateValue : inputValueParsed * inputRateValue
-        outputValueParsed = ethers.utils.bigNumberify(outputValueRaw.toFixedSpecial(0))
+        outputValueParsed = ethers.utils.bigNumberify(toFixedSpecial(outputValueRaw,0))
         outputValueFormatted = amountFormatter(
           outputValueParsed,
           dependentDecimals,
@@ -575,13 +578,13 @@ export default function ExchangePage({ initialCurrency, sending }) {
       rateFormatted = inputRateValue
       break
     case INPUT:
-      inputValueParsed = independentValueParsed
-      inputValueFormatted = independentValue
       outputValueParsed = dependentValue
       outputValueFormatted = dependentValueFormatted
       rateFormatted =
         rateOp === RATE_OP_DIV ? inputValueFormatted / outputValueFormatted : outputValueFormatted / inputValueFormatted
       break
+    default:
+      break;
   }
 
   useEffect(() => {
@@ -907,9 +910,9 @@ export default function ExchangePage({ initialCurrency, sending }) {
       <CurrencyInputPanel
         title={t('rate')}
         showCurrencySelector={false}
-        value={rateFormatted}
-        onValueChange={inputValue => {
-          dispatchSwapState({ type: 'UPDATE_INDEPENDENT', payload: { value: inputValue, field: RATE } })
+        value={rateFormatted || ''}
+        onValueChange={rateValue => {
+          dispatchSwapState({ type: 'UPDATE_INDEPENDENT', payload: { value: rateValue, field: RATE } })
         }}
       />
       <OversizedPanel>
