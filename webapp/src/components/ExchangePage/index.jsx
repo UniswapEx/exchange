@@ -302,6 +302,33 @@ function getExchangeRate(inputValue, inputDecimals, outputValue, outputDecimals,
   } catch {}
 }
 
+function applyExchangeRateTo(inputValue, exchangeRate, inputDecimals, outputDecimals, invert = false) {
+  try {
+    if (
+      inputValue &&
+      exchangeRate &&
+      (inputDecimals || inputDecimals === 0) &&
+      (outputDecimals || outputDecimals === 0)
+    ) {
+      const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(18))
+
+      if (invert) {
+        return inputValue
+          .mul(factor)
+          .div(exchangeRate)
+          .mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(outputDecimals)))
+          .div(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals)))
+      } else {
+        return exchangeRate
+          .mul(inputValue)
+          .div(factor)
+          .mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals)))
+          .div(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(outputDecimals)))
+      }
+    }
+  } catch {}
+}
+
 function getMarketRate(
   swapType,
   inputReserveETH,
@@ -540,8 +567,8 @@ export default function ExchangePage({ initialCurrency, sending }) {
 
   let outputValueFormatted
   let outputValueParsed
+  let rateRaw = rateParsed
   let rateFormatted = rateParsed
-
 
   switch (independentField) {
     case OUTPUT:
@@ -555,8 +582,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
       //   inputValueParsed = ethers.utils.bigNumberify(inputValueRaw.toFixedSpecial(0))
       //   inputValueFormatted = amountFormatter(inputValueParsed, inputDecimals, inputDecimals, 4)
       // }
-      rateFormatted =
-      rateOp === RATE_OP_DIV ? inputValueFormatted / outputValueFormatted : outputValueFormatted / inputValueFormatted
+      rateRaw = getExchangeRate(inputValueParsed, inputDecimals, outputValueParsed, outputDecimals, rateOp === RATE_OP_DIV)
       break
     case RATE:
       // inputValueParsed = prevIndependentField === OUTPUT ? dependentValue : independentValueParsed
@@ -566,6 +592,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
         outputValueParsed = ''
         outputValueFormatted = ''
       } else {
+        rateRaw = 
         const outputValueRaw =
           rateOp === RATE_OP_DIV ? inputValueParsed / inputRateValue : inputValueParsed * inputRateValue
         outputValueParsed = ethers.utils.bigNumberify(toFixedSpecial(outputValueRaw,0))
@@ -581,16 +608,29 @@ export default function ExchangePage({ initialCurrency, sending }) {
     case INPUT:
       outputValueParsed = dependentValue
       outputValueFormatted = dependentValueFormatted
-      rateFormatted =
-        rateOp === RATE_OP_DIV ? inputValueFormatted / outputValueFormatted : outputValueFormatted / inputValueFormatted
+      rateRaw = getExchangeRate(inputValueParsed, inputDecimals, outputValueParsed, outputDecimals, rateOp === RATE_OP_DIV)
       break
     default:
       break;
   }
 
+  rateFormatted = amountFormatter(
+    rateRaw,
+    18,
+    18,
+    false
+  )
+
+  const re = getExchangeRate(inputValueParsed, inputDecimals, outputValueParsed, outputDecimals, false)
+  console.log("exchange rate", re ? re.toString() : "")
+  console.log("inputValueParsed", inputValueParsed ? inputValueParsed.toString() : "")
+  console.log("outputValueParsed", outputValueParsed ? outputValueParsed.toString() : "")
+  const r = applyExchangeRateTo(inputValueParsed, re, inputDecimals, outputDecimals, false)
+  console.log(r ? r.toString() : "")
+
   useEffect(() => {
-    setRateParsed(rateFormatted)
-  }, [rateFormatted])
+    setRateParsed(rateRaw)
+  }, [rateRaw])
 
   // validate + parse independent value
   const [independentError, setIndependentError] = useState()
