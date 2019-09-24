@@ -214,7 +214,10 @@ function swapStateReducer(state, action) {
       return {
         ...state,
         dependentValue: '',
-        independentField: independentField === INPUT ? OUTPUT : INPUT,
+        independentField: INPUT,
+        independentValue: '',
+        dependentValue: '',
+        inputRateValue: '',
         inputCurrency: outputCurrency,
         outputCurrency: inputCurrency
       }
