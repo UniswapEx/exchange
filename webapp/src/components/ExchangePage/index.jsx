@@ -479,24 +479,6 @@ function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, input
   return ethValue.gt(orderFee)
 }
 
-// TODO Move this to standalone helper
-function toFixedSpecial (num, decimals) {
-  var str = num.toFixed(decimals)
-  if (str.indexOf('e+') < 0) return str
-
-  // if number is in scientific notation, pick (b)ase and (p)ower
-  const r =
-    str
-      .replace('.', '')
-      .split('e+')
-      .reduce(function(p, b) {
-        return p + Array(b - p.length + 2).join(0)
-      }) +
-    '.' +
-    Array(decimals + 1).join(0)
-  return r.replace('.', '')
-}
-
 export default function ExchangePage({ initialCurrency, sending }) {
   const { t } = useTranslation()
   const { account } = useWeb3Context()
@@ -608,10 +590,14 @@ export default function ExchangePage({ initialCurrency, sending }) {
       rateRaw = getExchangeRate(inputValueParsed, inputDecimals, outputValueParsed, outputDecimals, rateOp === RATE_OP_DIV)
       break
     default:
-      break;
+      break
   }
 
+  // rate info
   const rateFormatted = independentField === RATE ? inputRateValue : amountFormatter(rateRaw, 18, 4, false)
+  const inverseRateInputSymbol = rateOp === RATE_OP_DIV ? inputSymbol : outputSymbol
+  const inverseRateOutputSymbol = rateOp === RATE_OP_DIV ? outputSymbol : inputSymbol
+  const inverseRate = flipRate(rateRaw)
 
   useEffect(() => {
     setSavedRate(rateFormatted)
@@ -940,6 +926,13 @@ export default function ExchangePage({ initialCurrency, sending }) {
       <CurrencyInputPanel
         title={t('rate')}
         showCurrencySelector={false}
+        extraText={exchangeRate ?
+            `1 ${inverseRateInputSymbol} = ${amountFormatter(inverseRate, 18, 4, false)} ${inverseRateOutputSymbol}` :
+            '-'
+        }
+        extraTextClickHander={() => {
+          dispatchSwapState({ type: 'FLIP_RATE_OP' })
+        }}
         value={rateFormatted || ''}
         onValueChange={rateValue => {
           dispatchSwapState({ type: 'UPDATE_INDEPENDENT', payload: { value: rateValue, field: RATE } })
