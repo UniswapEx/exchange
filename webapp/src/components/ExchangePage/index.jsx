@@ -327,8 +327,8 @@ function applyExchangeRateTo(inputValue, exchangeRate, inputDecimals, outputDeci
         return exchangeRate
           .mul(inputValue)
           .div(factor)
-          .mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals)))
-          .div(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(outputDecimals)))
+          .mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(outputDecimals)))
+          .div(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals)))
       }
     }
   } catch {}
@@ -576,7 +576,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
         outputValueParsed = ''
         outputValueFormatted = ''
       } else {
-        rateRaw = ethers.utils.bigNumberify(ethers.utils.parseUnits(inputRateValue))
+        rateRaw = ethers.utils.bigNumberify(ethers.utils.parseUnits(inputRateValue, 18))
         outputValueParsed = applyExchangeRateTo(inputValueParsed, rateRaw, inputDecimals, outputDecimals, rateOp === RATE_OP_DIV)
         outputValueFormatted = amountFormatter(
           outputValueParsed,
