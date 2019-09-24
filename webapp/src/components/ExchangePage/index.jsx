@@ -805,8 +805,9 @@ export default function ExchangePage({ initialCurrency, sending }) {
   )
 
   const isValid = sending
-    ? exchangeRate && inputError === null && independentError === null && recipientError === null
-    : exchangeRate && inputError === null && independentError === null
+    ? outputValueParsed && !inputError && !independentError && !recipientError
+    : outputValueParsed && !inputError && !independentError
+
 
   const estimatedText = `(${t('estimated')})`
   function formatBalance(value) {
