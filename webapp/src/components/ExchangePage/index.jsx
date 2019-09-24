@@ -43,8 +43,8 @@ const ALLOWED_SLIPPAGE_DEFAULT = 100
 const TOKEN_ALLOWED_SLIPPAGE_DEFAULT = 100
 const SLIPPAGE_WARNING = '.3' // [30+%
 
-const RATE_OP_MULT = "x"
-const RATE_OP_DIV = "/"
+const RATE_OP_MULT = 'x'
+const RATE_OP_DIV = '/'
 
 // Addresses
 const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
@@ -86,7 +86,11 @@ const RightArrow = styled(WrappedArrowRight)`
   position: relative;
 `
 
-const WrappedRateIcon = ({ clickable, active, icon, ...rest }) => <div unselectable="on" {...rest}>{icon}</div>
+const WrappedRateIcon = ({ clickable, active, icon, ...rest }) => (
+  <div unselectable="on" {...rest}>
+    {icon}
+  </div>
+)
 const RateIcon = styled(WrappedRateIcon)`
   color: ${({ theme, active }) => (active ? theme.royalGreen : theme.chaliceGray)};
   width: 0.625rem;
@@ -439,13 +443,18 @@ function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, input
 // TODO Move this to standalone helper
 Number.prototype.toFixedSpecial = function(n) {
   var str = this.toFixed(n)
-  if (str.indexOf('e+') < 0)
-      return str;
+  if (str.indexOf('e+') < 0) return str
 
   // if number is in scientific notation, pick (b)ase and (p)ower
-  const r = str.replace('.', '').split('e+').reduce(function(p, b) {
-      return p + Array(b - p.length + 2).join(0)
-  }) + '.' + Array(n + 1).join(0)
+  const r =
+    str
+      .replace('.', '')
+      .split('e+')
+      .reduce(function(p, b) {
+        return p + Array(b - p.length + 2).join(0)
+      }) +
+    '.' +
+    Array(n + 1).join(0)
   return r.replace('.', '')
 }
 
@@ -536,26 +545,32 @@ export default function ExchangePage({ initialCurrency, sending }) {
     case OUTPUT:
       outputValueParsed = independentValueParsed
       outputValueFormatted = independentValue
-      if (!rateParsed || !outputValueParsed || Number(rateParsed) === 0 || Number(outputValueParsed) === 0) {
-        inputValueParsed = ""
-        inputValueFormatted = ""
+      if (!rateParsed || !outputValueParsed || Number(rateParsed) === 0 || Number(outputValueParsed) === 0) {
+        inputValueParsed = ''
+        inputValueFormatted = ''
       } else {
-        const inputValueRaw = rateOp === RATE_OP_DIV ? (outputValueParsed / rateParsed) : outputValueParsed / rateParsed
+        const inputValueRaw = rateOp === RATE_OP_DIV ? outputValueParsed / rateParsed : outputValueParsed / rateParsed
         inputValueParsed = ethers.utils.bigNumberify(inputValueRaw.toFixedSpecial(0))
         inputValueFormatted = amountFormatter(inputValueParsed, inputDecimals, inputDecimals, 4)
       }
-      break;
+      break
     case RATE:
       inputValueParsed = prevIndependentField === OUTPUT ? dependentValue : independentValueParsed
       inputValueFormatted = amountFormatter(inputValueParsed, inputDecimals, inputDecimals, 4)
 
-      if (!inputRateValue || Number(inputRateValue) === 0) {
-        outputValueParsed = ""
-        outputValueFormatted = ""
+      if (!inputRateValue || Number(inputRateValue) === 0) {
+        outputValueParsed = ''
+        outputValueFormatted = ''
       } else {
-        const outputValueRaw = rateOp === RATE_OP_DIV ? inputValueParsed / inputRateValue : inputValueParsed * inputRateValue
+        const outputValueRaw =
+          rateOp === RATE_OP_DIV ? inputValueParsed / inputRateValue : inputValueParsed * inputRateValue
         outputValueParsed = ethers.utils.bigNumberify(outputValueRaw.toFixedSpecial(0))
-        outputValueFormatted = amountFormatter(outputValueParsed, dependentDecimals, Math.min(4, dependentDecimals), false)
+        outputValueFormatted = amountFormatter(
+          outputValueParsed,
+          dependentDecimals,
+          Math.min(4, dependentDecimals),
+          false
+        )
       }
       rateFormatted = inputRateValue
       break
@@ -564,11 +579,14 @@ export default function ExchangePage({ initialCurrency, sending }) {
       inputValueFormatted = independentValue
       outputValueParsed = dependentValue
       outputValueFormatted = dependentValueFormatted
-      rateFormatted = rateOp === RATE_OP_DIV ? inputValueFormatted / outputValueFormatted : outputValueFormatted / inputValueFormatted;
+      rateFormatted =
+        rateOp === RATE_OP_DIV ? inputValueFormatted / outputValueFormatted : outputValueFormatted / inputValueFormatted
       break
   }
 
-  useEffect(() => { setRateParsed(rateFormatted) }, [rateFormatted])
+  useEffect(() => {
+    setRateParsed(rateFormatted)
+  }, [rateFormatted])
 
   // validate + parse independent value
   const [independentError, setIndependentError] = useState()
