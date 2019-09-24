@@ -420,7 +420,7 @@ async function decodeOrder(uniswapEXContract, data) {
 }
 
 function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, inputDecimals) {
-  if (!value || !swapType) {
+  if (!value || swapType === null) {
     return true
   }
 
@@ -437,6 +437,7 @@ function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, input
     }
     ethValue = value.mul(ethRate).div(factor)
   }
+
   return ethValue.gt(orderFee)
 }
 
@@ -628,9 +629,12 @@ export default function ExchangePage({ initialCurrency, sending }) {
   useEffect(() => {
     const inputValueCalculation = independentField === INPUT ? independentValueParsed : dependentValueMaximum
     if (inputBalance && (inputAllowance || inputCurrency === 'ETH') && inputValueCalculation) {
-      // @TODO: revisit this maybe I can remove the two lines below
-      setInputError(null)
-      setShowUnlock(false)
+      if (inputBalance.lt(inputValueCalculation)) {
+        setInputError(t('insufficientBalance'))
+      } else {
+        setInputError(null)
+        setShowUnlock(false)
+      }
       return () => {
         setInputError()
         setShowUnlock(false)
@@ -779,7 +783,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
 
   const enoughAmountToCoverFees = canCoverFees(
     swapType,
-    independentField === INPUT ? independentValueParsed : dependentValue,
+    independentField === INPUT ? independentValueParsed : inputValueParsed,
     inputReserveETH,
     inputReserveToken,
     inputDecimals
