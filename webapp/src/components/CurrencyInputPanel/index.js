@@ -267,20 +267,21 @@ const SpinnerWrapper = styled(Spinner)`
 `
 
 export default function CurrencyInputPanel({
-  onValueChange = () => {},
+  onValueChange = () => { },
   allBalances,
   renderInput,
-  onCurrencySelected = () => {},
+  onCurrencySelected = () => { },
   title,
   description,
   extraText,
-  extraTextClickHander = () => {},
+  extraTextClickHander = () => { },
   errorMessage,
   disableUnlock,
   disableTokenSelect,
   selectedTokenAddress = '',
   showUnlock,
-  value
+  value,
+  showCurrencySelector = true
 }) {
   const { t } = useTranslation()
 
@@ -351,24 +352,26 @@ export default function CurrencyInputPanel({
           value={value}
         />
         {renderUnlockButton()}
-        <CurrencySelect
-          selected={!!selectedTokenAddress}
-          onClick={() => {
-            if (!disableTokenSelect) {
-              setModalIsOpen(true)
-            }
-          }}
-        >
-          <Aligner>
-            {selectedTokenAddress ? <TokenLogo address={selectedTokenAddress} /> : null}
-            {
-              <StyledTokenName>
-                {(allTokens[selectedTokenAddress] && allTokens[selectedTokenAddress].symbol) || t('selectToken')}
-              </StyledTokenName>
-            }
-            {!disableTokenSelect && <StyledDropDown selected={!!selectedTokenAddress} />}
-          </Aligner>
-        </CurrencySelect>
+        {showCurrencySelector ?
+          <CurrencySelect
+            selected={!!selectedTokenAddress}
+            onClick={() => {
+              if (!disableTokenSelect) {
+                setModalIsOpen(true)
+              }
+            }}
+          >
+            <Aligner>
+              {selectedTokenAddress ? <TokenLogo address={selectedTokenAddress} /> : null}
+              {
+                <StyledTokenName>
+                  {(allTokens[selectedTokenAddress] && allTokens[selectedTokenAddress].symbol) || t('selectToken')}
+                </StyledTokenName>
+              }
+              {!disableTokenSelect && <StyledDropDown selected={!!selectedTokenAddress} />}
+            </Aligner>
+          </CurrencySelect>
+          : null}
       </InputRow>
     )
   }
@@ -554,8 +557,8 @@ function CurrencySelectModal({ isOpen, onDismiss, onTokenSelect, allBalances }) 
             {balance ? (
               <TokenRowBalance>{balance && (balance > 0 || balance === '<0.0001') ? balance : '-'}</TokenRowBalance>
             ) : (
-              <SpinnerWrapper src={Circle} alt="loader" />
-            )}
+                <SpinnerWrapper src={Circle} alt="loader" />
+              )}
             <TokenRowUsd>
               {usdBalance ? (usdBalance.lt(0.01) ? '<$0.01' : '$' + formatToUsd(usdBalance)) : ''}
             </TokenRowUsd>

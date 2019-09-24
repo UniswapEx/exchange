@@ -13,7 +13,7 @@
   "betaWarning": "This project is in beta. Use at your own risk.",
   "input": "Input",
   "output": "Output",
-  "estimated": "estimated",
+  "estimated": "At least",
   "balance": "Balance: {{ balanceInput }}",
   "unlock": "Unlock",
   "pending": "Pending",
@@ -89,5 +89,6 @@
   "cancel": "Cancel",
   "noOpenOrders": "No open orders",
   "fetchingOrders": "Loading open orders",
-  "enoughAmountToCoverFees": "Insufficient amount to cover the relayer fee: {{ fee }}"
+  "enoughAmountToCoverFees": "Insufficient amount to cover the relayer fee: {{ fee }}",
+  "rate": "Rate"
 }

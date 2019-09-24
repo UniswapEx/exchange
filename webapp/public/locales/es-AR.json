@@ -74,5 +74,6 @@
   "enterTokenCont": "Ingresá una dirección de token para continuar",
   "place": "Ordenar",
   "highSlippageWarning": "Diferencia mayor al {{ percentage }}% del precio actual",
-  "enoughAmountToCoverFees": "El valor ingresado no alcanza para cubrir el pago al relayer: {{ fee }}"
+  "enoughAmountToCoverFees": "El valor ingresado no alcanza para cubrir el pago al relayer: {{ fee }}",
+  "rate": "Cambio"
 }
