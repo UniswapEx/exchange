@@ -822,7 +822,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
       action: 'place'
     })
 
-    if (independentField === INPUT) {
+    if (independentField === INPUT || independentField === RATE) {
       amount = independentValueParsed
       minimumReturn = dependentValue
     } else if (independentField === OUTPUT) {
