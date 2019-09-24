@@ -13,6 +13,8 @@ import OversizedPanel from '../OversizedPanel'
 import TokenLogo from '../TokenLogo'
 import ArrowDown from '../../assets/svg/SVGArrowDown'
 import Circle from '../../assets/images/circle.svg'
+import SVGClose from '../../assets/svg/SVGClose'
+import SVGDiv from '../../assets/svg/SVGDiv'
 import { amountFormatter } from '../../utils'
 import { useUniswapExContract } from '../../hooks'
 import { Spinner } from '../../theme'
@@ -86,13 +88,10 @@ const RightArrow = styled(WrappedArrowRight)`
   position: relative;
 `
 
-const WrappedRateIcon = ({ clickable, active, icon, ...rest }) => (
-  <div unselectable="on" {...rest}>
-    {icon}
-  </div>
-)
+const WrappedRateIcon = ({RateIconSVG, clickable, active, icon, ...rest }) => <RateIconSVG {...rest} />
+
 const RateIcon = styled(WrappedRateIcon)`
-  color: ${({ theme, active }) => (active ? theme.royalGreen : theme.chaliceGray)};
+  stroke: ${({ theme, active }) => (active ? theme.royalGreen : theme.chaliceGray)};
   width: 0.625rem;
   height: 0.625rem;
   position: relative;
@@ -901,6 +900,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
       <OversizedPanel>
         <DownArrowBackground>
           <RateIcon
+            RateIconSVG={rateOp === RATE_OP_MULT ? SVGClose : SVGDiv }
             icon={rateOp}
             onClick={() => {
               dispatchSwapState({ type: 'FLIP_RATE_OP' })
