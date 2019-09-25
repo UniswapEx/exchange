@@ -210,13 +210,12 @@ function getInitialSwapState(outputCurrency) {
 function swapStateReducer(state, action) {
   switch (action.type) {
     case 'FLIP_INDEPENDENT': {
-      const { independentField, inputCurrency, outputCurrency } = state
+      const { inputCurrency, outputCurrency } = state
       return {
         ...state,
         dependentValue: '',
         independentField: INPUT,
         independentValue: '',
-        dependentValue: '',
         inputRateValue: '',
         inputCurrency: outputCurrency,
         outputCurrency: inputCurrency
@@ -482,7 +481,7 @@ function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, input
   return ethValue.gt(orderFee)
 }
 
-export default function ExchangePage({ initialCurrency, sending }) {
+export default function ExchangePage({ initialCurrency }) {
   const { t } = useTranslation()
   const { account } = useWeb3Context()
   // core swap state
@@ -516,8 +515,6 @@ export default function ExchangePage({ initialCurrency, sending }) {
   useEffect(() => {
     ReactGA.pageview(window.location.pathname + window.location.search)
   }, [])
-
-  const [recipientError] = useState()
 
   // get swap type from the currency types
   const swapType = getSwapType(inputCurrency, outputCurrency)
@@ -660,11 +657,12 @@ export default function ExchangePage({ initialCurrency, sending }) {
   useEffect(() => {
     const amount = independentValueParsed
 
-    if (independentField === OUTPUT) {
+    if (independentField === OUTPUT || independentField === RATE) {
       return () => {
-        dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: null })
+          dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: null })
       }
     }
+
     if (swapType === ETH_TO_TOKEN) {
       const reserveETH = outputReserveETH
       const reserveToken = outputReserveToken
@@ -766,8 +764,37 @@ export default function ExchangePage({ initialCurrency, sending }) {
     inputReserveETH,
     inputReserveToken,
     independentField,
+    inputRateValue,
     t
   ])
+
+  // calculate check liquidity
+  useEffect(() => {
+    if ((independentField === OUTPUT || independentField === RATE) && outputValueParsed) {
+      return () => {
+        let reserveAmount
+
+        if (swapType === ETH_TO_TOKEN || swapType === TOKEN_TO_TOKEN) {
+          reserveAmount = outputReserveToken
+        } else {
+          reserveAmount = inputReserveETH
+        }
+
+        if (outputValueParsed.gt(reserveAmount)) {
+          setIndependentError(t('insufficientLiquidity'))
+        } else {
+          setIndependentError(null)
+          setInputError(null)
+        }
+      }
+    }}, [
+      swapType,
+      outputValueParsed,
+      inputReserveETH,
+      outputReserveToken,
+      independentField,
+      t
+    ])
 
   const [inverted, setInverted] = useState(false)
 
@@ -804,10 +831,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
     inputDecimals
   )
 
-  const isValid = sending
-    ? outputValueParsed && !inputError && !independentError && !recipientError
-    : outputValueParsed && !inputError && !independentError
-
+  const isValid = outputValueParsed && !inputError && !independentError
 
   const estimatedText = `(${t('estimated')})`
   function formatBalance(value) {
