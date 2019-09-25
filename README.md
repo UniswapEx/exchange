@@ -70,3 +70,6 @@ We fixed this issue by providing a secret in the transaction data; the relayer h
 - Ability for the user to set the fee.
 
 If you want to add your token reach out us.
+
+- [Discord](https://discord.gg/w6JVcrg)
+- [Telegram](https://t.me/UniswapEX)
