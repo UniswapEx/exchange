@@ -822,13 +822,8 @@ export default function ExchangePage({ initialCurrency, sending }) {
       action: 'place'
     })
 
-    if (independentField === INPUT || independentField === RATE) {
-      amount = independentValueParsed
-      minimumReturn = dependentValue
-    } else if (independentField === OUTPUT) {
-      amount = dependentValue
-      minimumReturn = independentValueParsed
-    }
+    amount = inputValueParsed
+    minimumReturn = outputValueParsed
 
     if (swapType === ETH_TO_TOKEN) {
       //@TODO: change it later
