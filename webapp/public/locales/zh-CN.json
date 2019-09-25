@@ -72,5 +72,8 @@
   "label": "通证符号",
   "decimals": "小数位数",
   "enterTokenCont": "输入通证地址并继续",
-  "place": "Poner"
+  "rate": "Rate",
+  "place": "Place",
+  "placeAbove": "Order {{ rateDelta }}% above market",
+  "placeBelow": "Order {{ rateDelta }}% below market"
 }

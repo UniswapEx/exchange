@@ -1,14 +1,25 @@
+.market-delta-info,
 .slippage-warning,
 .fee-error {
-  width: 100%;
   text-align: center;
   color: inherit;
   margin-top: -25px;
   color: #f96600;
   font-size: 14px;
-  display: flex;
   align-items: center;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
   justify-content: center;
+  padding: 1rem;
+}
+
+.market-delta-info{
+  color: #87c122;
 }
 
 .fee-error {

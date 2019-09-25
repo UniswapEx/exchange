@@ -43,7 +43,7 @@ const TOKEN_TO_TOKEN = 2
 // Denominated in bips
 const ALLOWED_SLIPPAGE_DEFAULT = 100
 const TOKEN_ALLOWED_SLIPPAGE_DEFAULT = 100
-const SLIPPAGE_WARNING = '.3' // [30+%
+const SLIPPAGE_WARNING = '30' // [30+%
 
 const RATE_OP_MULT = 'x'
 const RATE_OP_DIV = '/'
@@ -328,6 +328,24 @@ function applyExchangeRateTo(inputValue, exchangeRate, inputDecimals, outputDeci
           .div(factor)
           .mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(outputDecimals)))
           .div(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals)))
+      }
+    }
+  } catch {}
+}
+
+function exchangeRateDiff(exchangeRateA, exchangeRateB) {
+  try {
+    if (
+      exchangeRateA &&
+      exchangeRateB
+    ) {
+      const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(18))
+      const deltaRaw = factor.mul(exchangeRateA).div(exchangeRateB)
+
+      if (false && deltaRaw < factor) {
+        return (factor.sub(deltaRaw), true)
+      } else {
+        return (deltaRaw.sub(factor))
       }
     }
   } catch {}
@@ -824,17 +842,10 @@ export default function ExchangePage({ initialCurrency }) {
   const exchangeRate = marketRate
   const exchangeRateInverted = flipRate(exchangeRate)
 
-  const percentSlippage =
-    exchangeRate && marketRate
-      ? exchangeRate
-          .sub(marketRate)
-          .abs()
-          .mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(18)))
-          .div(marketRate)
-          .sub(ethers.utils.bigNumberify(3).mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(15))))
-      : undefined
-
-  const highSlippageWarning = percentSlippage && percentSlippage.gte(ethers.utils.parseEther(SLIPPAGE_WARNING))
+  const rateDelta = exchangeRateDiff(rateOp === RATE_OP_DIV ? inverseRate : rateRaw, exchangeRate)
+  const limitSlippage = ethers.utils.bigNumberify(SLIPPAGE_WARNING).mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(16)))
+  const highSlippageWarning = rateDelta && rateDelta.lt(ethers.utils.bigNumberify(0).sub(limitSlippage))
+  const rateDeltaFormatted = amountFormatter(rateDelta, 16, 2, true)
 
   const enoughAmountToCoverFees = canCoverFees(
     swapType,
@@ -1033,24 +1044,32 @@ export default function ExchangePage({ initialCurrency }) {
           onClick={onPlace}
           warning={highSlippageWarning || customSlippageError === 'warning' || !enoughAmountToCoverFees}
         >
-          {highSlippageWarning || customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
+          {customSlippageError === 'warning' ? 
+            t('placeAnyway') : 
+            t('place')
+          }
         </Button>
       </Flex>
-      {highSlippageWarning && (
-        <p className="slippage-warning">
+      {rateDeltaFormatted && (
+        <div className="market-delta-info">
+          {rateDeltaFormatted.startsWith('-') ? t('placeBelow', { rateDelta: rateDeltaFormatted }) : t('placeAbove', { rateDelta: rateDeltaFormatted })}
+        </div>
+      )}
+      {(highSlippageWarning) && (
+        <div className="slippage-warning">
           <span role="img" aria-label="warning">
             ⚠️
           </span>
-          {t('highSlippageWarning', { percentage: 100 * SLIPPAGE_WARNING })}
-        </p>
+          {t('highSlippageWarning')}
+        </div>
       )}
       {!enoughAmountToCoverFees && (
-        <p className="fee-error">
+        <div className="fee-error">
           <span role="img" aria-label="error">
             💸
           </span>
           {t('enoughAmountToCoverFees', { fee: ORDER_FEE / 1e18 })} <TokenLogo address={'ETH'} />
-        </p>
+        </div>
       )}
       <div>
         <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>

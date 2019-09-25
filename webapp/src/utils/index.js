@@ -21,9 +21,9 @@ export const ERROR_CODES = ['TOKEN_NAME', 'TOKEN_SYMBOL', 'TOKEN_DECIMALS'].redu
 export function safeAccess(object, path) {
   return object
     ? path.reduce(
-        (accumulator, currentValue) => (accumulator && accumulator[currentValue] ? accumulator[currentValue] : null),
-        object
-      )
+      (accumulator, currentValue) => (accumulator && accumulator[currentValue] ? accumulator[currentValue] : null),
+      object
+    )
     : null
 }
 
@@ -220,7 +220,7 @@ export async function getTokenAllowance(address, tokenAddress, spenderAddress, l
   if (!isAddress(address) || !isAddress(tokenAddress) || !isAddress(spenderAddress)) {
     throw Error(
       "Invalid 'address' or 'tokenAddress' or 'spenderAddress' parameter" +
-        `'${address}' or '${tokenAddress}' or '${spenderAddress}'.`
+      `'${address}' or '${tokenAddress}' or '${spenderAddress}'.`
     )
   }
 
@@ -229,6 +229,7 @@ export async function getTokenAllowance(address, tokenAddress, spenderAddress, l
 
 // amount must be a BigNumber, {base,display}Decimals must be Numbers
 export function amountFormatter(amount, baseDecimals = 18, displayDecimals = 3, useLessThan = true) {
+  const zero = ethers.utils.bigNumberify(0);
   if (baseDecimals > 18 || displayDecimals > 18 || displayDecimals > baseDecimals) {
     throw Error(`Invalid combination of baseDecimals '${baseDecimals}' and displayDecimals '${displayDecimals}.`)
   }
@@ -239,6 +240,10 @@ export function amountFormatter(amount, baseDecimals = 18, displayDecimals = 3, 
   // if amount is 0, return
   else if (amount.isZero()) {
     return '0'
+  }
+  // amount is negative
+  else if (amount.lt(zero)) {
+    return `-${amountFormatter(zero.sub(amount), baseDecimals, displayDecimals, useLessThan)}`
   }
   // amount > 0
   else {

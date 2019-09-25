@@ -72,5 +72,8 @@
   "label": "Название",
   "decimals": "Десятичное значение",
   "enterTokenCont": "Чтобы продолжить, введите адрес токена",
-  "place": "Poner"
+  "rate": "Rate",
+  "place": "Place",
+  "placeAbove": "Order {{ rateDelta }}% above market",
+  "placeBelow": "Order {{ rateDelta }}% below market"
 }

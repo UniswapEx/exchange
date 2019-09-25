@@ -73,5 +73,8 @@
   "label": "Label",
   "decimals": "Dezimalstellen",
   "enterTokenCont": "Tokenadresse eingeben um fortzufahren",
-  "place": "Poner"
+  "rate": "Rate",
+  "place": "Poner",
+  "placeAbove": "Order {{ rateDelta }}% above market",
+  "placeBelow": "Order {{ rateDelta }}% below market"
 }
