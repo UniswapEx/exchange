@@ -389,7 +389,7 @@ const INITIAL_TOKENS_CONTEXT = {
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0xaE76c84C9262Cdb9abc0C2c8888e62Db8E22A0bF'
     },
-    '0x3a9fff453d50d4ac52a6890647b823379ba36b9e': {
+    '0x3A9FfF453d50D4Ac52A6890647b823379ba36B9E': {
       [NAME]: 'Shuffle.Monster V3',
       [SYMBOL]: 'SHUF',
       [DECIMALS]: 18,
