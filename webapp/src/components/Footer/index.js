@@ -5,6 +5,8 @@ import Toggle from 'react-switch'
 
 import { Link } from '../../theme'
 import { useDarkModeManager } from '../../contexts/LocalStorage'
+import SVGDiscord from '../../assets/svg/SVGDiscord'
+import SVGTelegram from '../../assets/svg/SVGTelegram'
 
 const FooterFrame = styled.div`
   display: flex;
@@ -70,6 +72,24 @@ const EmojiToggle = styled.span`
   font-family: Arial sans-serif;
 `
 
+const DiscordImg = styled.div`
+  height: 18px;
+
+  svg {
+    fill: ${({ theme }) => theme.uniswapPink};
+    height: 28px;
+  }
+`
+
+const TelegramImg = styled.div`
+  height: 18px;
+  margin-left: 5px;
+  svg {
+    fill: ${({ theme }) => theme.uniswapPink};
+      height: 22px;
+    }
+`
+
 export default function Footer() {
   const [isDark, toggleDarkMode] = useDarkModeManager()
 
@@ -85,6 +105,16 @@ export default function Footer() {
           </Link>
           <Link id="link" href="https://etherscan.io/address/0x2Aba5DEd72B165a9aB5877Fd3669215906F7aCFe">
             <h1 id="title">Donate ❤</h1>
+          </Link>
+          <Link id="link" href="https://discord.gg/w6JVcrg">
+            <DiscordImg>
+              <SVGDiscord />
+            </DiscordImg>
+          </Link>
+          <Link id="link" href="https://t.me/UniswapEX">
+            <TelegramImg>
+            <SVGTelegram />
+            </TelegramImg>
           </Link>
         </Title>
       </FooterElement>
