@@ -1039,13 +1039,14 @@ export default function ExchangePage({ initialCurrency }) {
       </OversizedPanel>
       <Flex>
         <Button
-          disabled={!isValid || customSlippageError === 'invalid' || !enoughAmountToCoverFees}
+          disabled={!account || !isValid || customSlippageError === 'invalid' || !enoughAmountToCoverFees}
           onClick={onPlace}
           warning={highSlippageWarning || customSlippageError === 'warning' || !enoughAmountToCoverFees}
         >
           {customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
         </Button>
       </Flex>
+      { !account && <div className="fee-error">{t('noWallet')} </div>}
       {rateDeltaFormatted && (
         <div className="market-delta-info">
           {rateDeltaFormatted.startsWith('-')
