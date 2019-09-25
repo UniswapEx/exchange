@@ -29,6 +29,12 @@ const ETH = {
 
 const INITIAL_TOKENS_CONTEXT = {
   1: {
+    '0xB6eD7644C69416d67B522e20bC294A9a9B405B31': {
+      [NAME]: '0xBitcoin',
+      [SYMBOL]: '0xBTC',
+      [DECIMALS]: 8,
+      [EXCHANGE_ADDRESS]: "0x701564Aa6E26816147D4fa211a0779F1B774Bb9B"
+    },
     '0x960b236A07cf122663c4303350609A66A7B288C0': {
       [NAME]: 'Aragon Network Token',
       [SYMBOL]: 'ANT',
