@@ -403,7 +403,7 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
               continue
             }
             const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
-            const amount = await new Promise(res =>
+            const amount = await new Promise((resolve, reject) =>
               window.web3.eth.call(
                 {
                   to: order.fromToken,
@@ -411,9 +411,9 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
                 },
                 (error, amount) => {
                   if (error) {
-                    throw new Error(error)
+                    reject(error)
                   }
-                  res(amount)
+                  resolve(amount)
                 }
               )
             )
@@ -851,7 +851,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
         : await method(fromCurrency, toCurrency, amount, minimumReturn, ORDER_FEE, account, privateKey, address))
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
-        : new Promise(res =>
+        : new Promise((resolve, reject) =>
             window.web3.eth.sendTransaction(
               {
                 from: account,
@@ -860,9 +860,9 @@ export default function ExchangePage({ initialCurrency, sending }) {
               },
               (err, hash) => {
                 if (err) {
-                  throw new Error(err)
+                  reject(err)
                 }
-                res({ hash })
+                resolve({ hash })
               }
             )
           ))
