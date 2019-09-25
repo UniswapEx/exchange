@@ -88,7 +88,7 @@ const RightArrow = styled(WrappedArrowRight)`
   position: relative;
 `
 
-const WrappedRateIcon = ({RateIconSVG, clickable, active, icon, ...rest }) => <RateIconSVG {...rest} />
+const WrappedRateIcon = ({ RateIconSVG, clickable, active, icon, ...rest }) => <RateIconSVG {...rest} />
 
 const RateIcon = styled(WrappedRateIcon)`
   stroke: ${({ theme, active }) => (active ? theme.royalGreen : theme.chaliceGray)};
@@ -225,7 +225,7 @@ function swapStateReducer(state, action) {
       const { rateOp, inputRateValue } = state
 
       const rate = inputRateValue ? ethers.utils.bigNumberify(ethers.utils.parseUnits(inputRateValue, 18)) : undefined
-      const flipped = rate ? amountFormatter(flipRate(rate), 18, 18, false) : ""
+      const flipped = rate ? amountFormatter(flipRate(rate), 18, 18, false) : ''
 
       return {
         ...state,
@@ -556,17 +556,24 @@ export default function ExchangePage({ initialCurrency }) {
   const [savedRate, setSavedRate] = useState()
 
   const inputValueParsed = independentField === INPUT ? independentValueParsed : inputValue
-  const inputValueFormatted = independentField === INPUT ? independentValue : amountFormatter(inputValue, 18, Math.min(4, 18), false)
+  const inputValueFormatted =
+    independentField === INPUT ? independentValue : amountFormatter(inputValue, 18, Math.min(4, 18), false)
 
   let outputValueFormatted
   let outputValueParsed
-  let rateRaw = savedRate ? ethers.utils.bigNumberify(ethers.utils.parseUnits(savedRate, 18)) : ""
+  let rateRaw = savedRate ? ethers.utils.bigNumberify(ethers.utils.parseUnits(savedRate, 18)) : ''
 
   switch (independentField) {
     case OUTPUT:
       outputValueParsed = independentValueParsed
       outputValueFormatted = independentValue
-      rateRaw = getExchangeRate(inputValueParsed, inputDecimals, outputValueParsed, outputDecimals, rateOp === RATE_OP_DIV)
+      rateRaw = getExchangeRate(
+        inputValueParsed,
+        inputDecimals,
+        outputValueParsed,
+        outputDecimals,
+        rateOp === RATE_OP_DIV
+      )
       break
     case RATE:
       if (!inputRateValue || Number(inputRateValue) === 0) {
@@ -574,7 +581,13 @@ export default function ExchangePage({ initialCurrency }) {
         outputValueFormatted = ''
       } else {
         rateRaw = ethers.utils.bigNumberify(ethers.utils.parseUnits(inputRateValue, 18))
-        outputValueParsed = applyExchangeRateTo(inputValueParsed, rateRaw, inputDecimals, outputDecimals, rateOp === RATE_OP_DIV)
+        outputValueParsed = applyExchangeRateTo(
+          inputValueParsed,
+          rateRaw,
+          inputDecimals,
+          outputDecimals,
+          rateOp === RATE_OP_DIV
+        )
         outputValueFormatted = amountFormatter(
           outputValueParsed,
           dependentDecimals,
@@ -587,7 +600,13 @@ export default function ExchangePage({ initialCurrency }) {
     case INPUT:
       outputValueParsed = dependentValue
       outputValueFormatted = dependentValueFormatted
-      rateRaw = getExchangeRate(inputValueParsed, inputDecimals, outputValueParsed, outputDecimals, rateOp === RATE_OP_DIV)
+      rateRaw = getExchangeRate(
+        inputValueParsed,
+        inputDecimals,
+        outputValueParsed,
+        outputDecimals,
+        rateOp === RATE_OP_DIV
+      )
       break
     default:
       break
@@ -659,7 +678,7 @@ export default function ExchangePage({ initialCurrency }) {
 
     if (independentField === OUTPUT || independentField === RATE) {
       return () => {
-          dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: null })
+        dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: null })
       }
     }
 
@@ -787,14 +806,8 @@ export default function ExchangePage({ initialCurrency }) {
           setInputError(null)
         }
       }
-    }}, [
-      swapType,
-      outputValueParsed,
-      inputReserveETH,
-      outputReserveToken,
-      independentField,
-      t
-    ])
+    }
+  }, [swapType, outputValueParsed, inputReserveETH, outputReserveToken, independentField, t])
 
   const [inverted, setInverted] = useState(false)
 
@@ -936,7 +949,7 @@ export default function ExchangePage({ initialCurrency }) {
       <OversizedPanel>
         <DownArrowBackground>
           <RateIcon
-            RateIconSVG={rateOp === RATE_OP_MULT ? SVGClose : SVGDiv }
+            RateIconSVG={rateOp === RATE_OP_MULT ? SVGClose : SVGDiv}
             icon={rateOp}
             onClick={() => {
               dispatchSwapState({ type: 'FLIP_RATE_OP' })
@@ -950,9 +963,10 @@ export default function ExchangePage({ initialCurrency }) {
       <CurrencyInputPanel
         title={t('rate')}
         showCurrencySelector={false}
-        extraText={inverseRateInputSymbol && inverseRate && inverseRateOutputSymbol ?
-            `1 ${inverseRateInputSymbol} = ${amountFormatter(inverseRate, 18, 4, false)} ${inverseRateOutputSymbol}` :
-            '-'
+        extraText={
+          inverseRateInputSymbol && inverseRate && inverseRateOutputSymbol
+            ? `1 ${inverseRateInputSymbol} = ${amountFormatter(inverseRate, 18, 4, false)} ${inverseRateOutputSymbol}`
+            : '-'
         }
         extraTextClickHander={() => {
           dispatchSwapState({ type: 'FLIP_RATE_OP' })
