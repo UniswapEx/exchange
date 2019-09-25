@@ -31,7 +31,7 @@
   "transactionDetails": "Advanced Details",
   "hideDetails": "Hide Details",
   "slippageWarning": "Slippage Warning",
-  "highSlippageWarning": "Difference greather than {{ percentage }}% of the current price",
+  "highSlippageWarning": "This transaction is below market rate",
   "youAreSelling": "You are selling",
   "orTransFail": "or the transaction will fail.",
   "youWillReceive": "You will receive at least",
@@ -90,5 +90,7 @@
   "noOpenOrders": "No open orders",
   "fetchingOrders": "Loading open orders",
   "enoughAmountToCoverFees": "Insufficient amount to cover the relayer fee: {{ fee }}",
-  "rate": "Rate"
+  "rate": "Rate",
+  "placeAbove": "Order {{ rateDelta }}% above market",
+  "placeBelow": "Order {{ rateDelta }}% below market"
 }

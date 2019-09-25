@@ -73,7 +73,9 @@
   "decimals": "Decimales",
   "enterTokenCont": "Ingrese una dirección de token para continuar",
   "place": "Ordenar",
-  "highSlippageWarning": "Diferencia mayor al {{ percentage }}% del precio actual",
+  "highSlippageWarning": "Esta transaccion esta por debajo del valor de mercado",
   "enoughAmountToCoverFees": "El valor ingresado no alcanza para cubrir el pago al relayer: {{ fee }}",
-  "rate": "Cambio"
+  "rate": "Cambio",
+  "placeAbove": "Orden {{ rateDelta }}% sobre el mercado",
+  "placeBelow": "Orden {{ rateDelta }}% debajo del mercado"
 }

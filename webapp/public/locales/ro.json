@@ -72,5 +72,8 @@
   "label": "Denumire",
   "decimals": "Zecimale",
   "enterTokenCont": "Setează o adresă de token pentru a continua",
-  "place": "Poner"
+  "rate": "Rate",
+  "place": "Place",
+  "placeAbove": "Order {{ rateDelta }}% above market",
+  "placeBelow": "Order {{ rateDelta }}% below market"
 }
