@@ -335,17 +335,14 @@ function applyExchangeRateTo(inputValue, exchangeRate, inputDecimals, outputDeci
 
 function exchangeRateDiff(exchangeRateA, exchangeRateB) {
   try {
-    if (
-      exchangeRateA &&
-      exchangeRateB
-    ) {
+    if (exchangeRateA && exchangeRateB) {
       const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(18))
       const deltaRaw = factor.mul(exchangeRateA).div(exchangeRateB)
 
       if (false && deltaRaw < factor) {
-        return (factor.sub(deltaRaw), true)
+        return factor.sub(deltaRaw)
       } else {
-        return (deltaRaw.sub(factor))
+        return deltaRaw.sub(factor)
       }
     }
   } catch {}
@@ -843,8 +840,10 @@ export default function ExchangePage({ initialCurrency }) {
   const exchangeRateInverted = flipRate(exchangeRate)
 
   const rateDelta = exchangeRateDiff(rateOp === RATE_OP_DIV ? inverseRate : rateRaw, exchangeRate)
-  const limitSlippage = ethers.utils.bigNumberify(SLIPPAGE_WARNING).mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(16)))
-  const highSlippageWarning = rateDelta && rateDelta.lt(ethers.utils.bigNumberify(0).sub(limitSlippage))
+  const limitSlippage = ethers.utils
+    .bigNumberify(SLIPPAGE_WARNING)
+    .mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(16)))
+  const highSlippageWarning = rateDelta && rateDelta.lt(ethers.utils.bigNumberify(0).sub(limitSlippage))
   const rateDeltaFormatted = amountFormatter(rateDelta, 16, 2, true)
 
   const enoughAmountToCoverFees = canCoverFees(
@@ -1044,18 +1043,17 @@ export default function ExchangePage({ initialCurrency }) {
           onClick={onPlace}
           warning={highSlippageWarning || customSlippageError === 'warning' || !enoughAmountToCoverFees}
         >
-          {customSlippageError === 'warning' ? 
-            t('placeAnyway') : 
-            t('place')
-          }
+          {customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
         </Button>
       </Flex>
       {rateDeltaFormatted && (
         <div className="market-delta-info">
-          {rateDeltaFormatted.startsWith('-') ? t('placeBelow', { rateDelta: rateDeltaFormatted }) : t('placeAbove', { rateDelta: rateDeltaFormatted })}
+          {rateDeltaFormatted.startsWith('-')
+            ? t('placeBelow', { rateDelta: rateDeltaFormatted })
+            : t('placeAbove', { rateDelta: rateDeltaFormatted })}
         </div>
       )}
-      {(highSlippageWarning) && (
+      {highSlippageWarning && (
         <div className="slippage-warning">
           <span role="img" aria-label="warning">
             ⚠️
