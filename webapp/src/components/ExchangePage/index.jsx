@@ -13,6 +13,8 @@ import OversizedPanel from '../OversizedPanel'
 import TokenLogo from '../TokenLogo'
 import ArrowDown from '../../assets/svg/SVGArrowDown'
 import Circle from '../../assets/images/circle.svg'
+import SVGClose from '../../assets/svg/SVGClose'
+import SVGDiv from '../../assets/svg/SVGDiv'
 import { amountFormatter } from '../../utils'
 import { useUniswapExContract } from '../../hooks'
 import { Spinner } from '../../theme'
@@ -32,6 +34,7 @@ let orders = []
 
 const INPUT = 0
 const OUTPUT = 1
+const RATE = 2
 
 const ETH_TO_TOKEN = 0
 const TOKEN_TO_ETH = 1
@@ -41,6 +44,9 @@ const TOKEN_TO_TOKEN = 2
 const ALLOWED_SLIPPAGE_DEFAULT = 100
 const TOKEN_ALLOWED_SLIPPAGE_DEFAULT = 100
 const SLIPPAGE_WARNING = '.3' // [30+%
+
+const RATE_OP_MULT = 'x'
+const RATE_OP_DIV = '/'
 
 // Addresses
 const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
@@ -80,6 +86,21 @@ const RightArrow = styled(WrappedArrowRight)`
   width: 0.625rem;
   height: 0.625rem;
   position: relative;
+`
+
+const WrappedRateIcon = ({ RateIconSVG, clickable, active, icon, ...rest }) => <RateIconSVG {...rest} />
+
+const RateIcon = styled(WrappedRateIcon)`
+  stroke: ${({ theme, active }) => (active ? theme.royalGreen : theme.chaliceGray)};
+  width: 0.625rem;
+  height: 0.625rem;
+  position: relative;
+  padding: 0.875rem;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  cursor: ${({ clickable }) => clickable && 'pointer'};
 `
 
 const ExchangeRateWrapper = styled.div`
@@ -178,21 +199,38 @@ function getInitialSwapState(outputCurrency) {
     independentValue: '', // this is a user input
     dependentValue: '', // this is a calculated number
     independentField: INPUT,
+    prevIndependentField: OUTPUT,
     inputCurrency: 'ETH',
-    outputCurrency: outputCurrency ? outputCurrency : ''
+    outputCurrency: outputCurrency ? outputCurrency : '',
+    rateOp: RATE_OP_MULT,
+    inputRateValue: ''
   }
 }
 
 function swapStateReducer(state, action) {
   switch (action.type) {
     case 'FLIP_INDEPENDENT': {
-      const { independentField, inputCurrency, outputCurrency } = state
+      const { inputCurrency, outputCurrency } = state
       return {
         ...state,
         dependentValue: '',
-        independentField: independentField === INPUT ? OUTPUT : INPUT,
+        independentField: INPUT,
+        independentValue: '',
+        inputRateValue: '',
         inputCurrency: outputCurrency,
         outputCurrency: inputCurrency
+      }
+    }
+    case 'FLIP_RATE_OP': {
+      const { rateOp, inputRateValue } = state
+
+      const rate = inputRateValue ? ethers.utils.bigNumberify(ethers.utils.parseUnits(inputRateValue, 18)) : undefined
+      const flipped = rate ? amountFormatter(flipRate(rate), 18, 18, false) : ''
+
+      return {
+        ...state,
+        inputRateValue: flipped,
+        rateOp: rateOp === RATE_OP_DIV ? RATE_OP_MULT : RATE_OP_DIV
       }
     }
     case 'SELECT_CURRENCY': {
@@ -218,13 +256,15 @@ function swapStateReducer(state, action) {
     }
     case 'UPDATE_INDEPENDENT': {
       const { field, value } = action.payload
-      const { dependentValue, independentValue } = state
+      const { dependentValue, independentValue, independentField, prevIndependentField, inputRateValue } = state
 
       return {
         ...state,
-        independentValue: value,
+        independentValue: field !== RATE ? value : independentValue,
         dependentValue: Number(value) === Number(independentValue) ? dependentValue : '',
-        independentField: field
+        independentField: field,
+        inputRateValue: field === RATE ? value : inputRateValue,
+        prevIndependentField: independentField === field ? prevIndependentField : independentField
       }
     }
     case 'UPDATE_DEPENDENT': {
@@ -262,6 +302,42 @@ function getExchangeRate(inputValue, inputDecimals, outputValue, outputDecimals,
           .mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals)))
           .div(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(outputDecimals)))
       }
+    }
+  } catch {}
+}
+
+function applyExchangeRateTo(inputValue, exchangeRate, inputDecimals, outputDecimals, invert = false) {
+  try {
+    if (
+      inputValue &&
+      exchangeRate &&
+      (inputDecimals || inputDecimals === 0) &&
+      (outputDecimals || outputDecimals === 0)
+    ) {
+      const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(18))
+
+      if (invert) {
+        return inputValue
+          .mul(factor)
+          .div(exchangeRate)
+          .mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(outputDecimals)))
+          .div(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals)))
+      } else {
+        return exchangeRate
+          .mul(inputValue)
+          .div(factor)
+          .mul(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(outputDecimals)))
+          .div(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals)))
+      }
+    }
+  } catch {}
+}
+
+function flipRate(rate) {
+  try {
+    if (rate) {
+      const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(18))
+      return factor.mul(factor).div(rate)
     }
   } catch {}
 }
@@ -326,7 +402,7 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
               continue
             }
             const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
-            const amount = await new Promise(res =>
+            const amount = await new Promise((resolve, reject) =>
               window.web3.eth.call(
                 {
                   to: order.fromToken,
@@ -334,9 +410,9 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
                 },
                 (error, amount) => {
                   if (error) {
-                    throw new Error(error)
+                    reject(error)
                   }
-                  res(amount)
+                  resolve(amount)
                 }
               )
             )
@@ -384,7 +460,7 @@ async function decodeOrder(uniswapEXContract, data) {
 }
 
 function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, inputDecimals) {
-  if (!value || !swapType) {
+  if (!value || swapType === null) {
     return true
   }
 
@@ -401,16 +477,25 @@ function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, input
     }
     ethValue = value.mul(ethRate).div(factor)
   }
+
   return ethValue.gt(orderFee)
 }
 
-export default function ExchangePage({ initialCurrency, sending }) {
+export default function ExchangePage({ initialCurrency }) {
   const { t } = useTranslation()
   const { account } = useWeb3Context()
   // core swap state
   const [swapState, dispatchSwapState] = useReducer(swapStateReducer, initialCurrency, getInitialSwapState)
 
-  const { independentValue, dependentValue, independentField, inputCurrency, outputCurrency } = swapState
+  const {
+    independentValue,
+    dependentValue,
+    independentField,
+    inputCurrency,
+    outputCurrency,
+    rateOp,
+    inputRateValue
+  } = swapState
 
   const uniswapEXContract = useUniswapExContract()
   const [inputError, setInputError] = useState()
@@ -430,8 +515,6 @@ export default function ExchangePage({ initialCurrency, sending }) {
   useEffect(() => {
     ReactGA.pageview(window.location.pathname + window.location.search)
   }, [])
-
-  const [recipientError] = useState()
 
   // get swap type from the currency types
   const swapType = getSwapType(inputCurrency, outputCurrency)
@@ -469,10 +552,75 @@ export default function ExchangePage({ initialCurrency, sending }) {
   const dependentValueFormatted = !!(dependentValue && (dependentDecimals || dependentDecimals === 0))
     ? amountFormatter(dependentValue, dependentDecimals, Math.min(4, dependentDecimals), false)
     : ''
-  const inputValueParsed = independentField === INPUT ? independentValueParsed : dependentValue
-  const inputValueFormatted = independentField === INPUT ? independentValue : dependentValueFormatted
-  const outputValueParsed = independentField === OUTPUT ? independentValueParsed : dependentValue
-  const outputValueFormatted = independentField === OUTPUT ? independentValue : dependentValueFormatted
+
+  const [savedRate, setSavedRate] = useState()
+
+  const inputValueParsed = independentField === INPUT ? independentValueParsed : inputValue
+  const inputValueFormatted =
+    independentField === INPUT ? independentValue : amountFormatter(inputValue, 18, Math.min(4, 18), false)
+
+  let outputValueFormatted
+  let outputValueParsed
+  let rateRaw = savedRate ? ethers.utils.bigNumberify(ethers.utils.parseUnits(savedRate, 18)) : ''
+
+  switch (independentField) {
+    case OUTPUT:
+      outputValueParsed = independentValueParsed
+      outputValueFormatted = independentValue
+      rateRaw = getExchangeRate(
+        inputValueParsed,
+        inputDecimals,
+        outputValueParsed,
+        outputDecimals,
+        rateOp === RATE_OP_DIV
+      )
+      break
+    case RATE:
+      if (!inputRateValue || Number(inputRateValue) === 0) {
+        outputValueParsed = ''
+        outputValueFormatted = ''
+      } else {
+        rateRaw = ethers.utils.bigNumberify(ethers.utils.parseUnits(inputRateValue, 18))
+        outputValueParsed = applyExchangeRateTo(
+          inputValueParsed,
+          rateRaw,
+          inputDecimals,
+          outputDecimals,
+          rateOp === RATE_OP_DIV
+        )
+        outputValueFormatted = amountFormatter(
+          outputValueParsed,
+          dependentDecimals,
+          Math.min(4, dependentDecimals),
+          false
+        )
+      }
+
+      break
+    case INPUT:
+      outputValueParsed = dependentValue
+      outputValueFormatted = dependentValueFormatted
+      rateRaw = getExchangeRate(
+        inputValueParsed,
+        inputDecimals,
+        outputValueParsed,
+        outputDecimals,
+        rateOp === RATE_OP_DIV
+      )
+      break
+    default:
+      break
+  }
+
+  // rate info
+  const rateFormatted = independentField === RATE ? inputRateValue : amountFormatter(rateRaw, 18, 4, false)
+  const inverseRateInputSymbol = rateOp === RATE_OP_DIV ? inputSymbol : outputSymbol
+  const inverseRateOutputSymbol = rateOp === RATE_OP_DIV ? outputSymbol : inputSymbol
+  const inverseRate = flipRate(rateRaw)
+
+  useEffect(() => {
+    setSavedRate(rateFormatted)
+  }, [rateFormatted])
 
   // validate + parse independent value
   const [independentError, setIndependentError] = useState()
@@ -511,9 +659,12 @@ export default function ExchangePage({ initialCurrency, sending }) {
   useEffect(() => {
     const inputValueCalculation = independentField === INPUT ? independentValueParsed : dependentValueMaximum
     if (inputBalance && (inputAllowance || inputCurrency === 'ETH') && inputValueCalculation) {
-      // @TODO: revisit this maybe I can remove the two lines below
-      setInputError(null)
-      setShowUnlock(false)
+      if (inputBalance.lt(inputValueCalculation)) {
+        setInputError(t('insufficientBalance'))
+      } else {
+        setInputError(null)
+        setShowUnlock(false)
+      }
       return () => {
         setInputError()
         setShowUnlock(false)
@@ -525,11 +676,12 @@ export default function ExchangePage({ initialCurrency, sending }) {
   useEffect(() => {
     const amount = independentValueParsed
 
-    if (independentField === OUTPUT) {
+    if (independentField === OUTPUT || independentField === RATE) {
       return () => {
         dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: null })
       }
     }
+
     if (swapType === ETH_TO_TOKEN) {
       const reserveETH = outputReserveETH
       const reserveToken = outputReserveToken
@@ -631,12 +783,33 @@ export default function ExchangePage({ initialCurrency, sending }) {
     inputReserveETH,
     inputReserveToken,
     independentField,
+    inputRateValue,
     t
   ])
 
+  // calculate check liquidity
+  useEffect(() => {
+    if ((independentField === OUTPUT || independentField === RATE) && outputValueParsed) {
+      return () => {
+        let reserveAmount
+
+        if (swapType === ETH_TO_TOKEN || swapType === TOKEN_TO_TOKEN) {
+          reserveAmount = outputReserveToken
+        } else {
+          reserveAmount = inputReserveETH
+        }
+
+        if (outputValueParsed.gt(reserveAmount)) {
+          setIndependentError(t('insufficientLiquidity'))
+        } else {
+          setIndependentError(null)
+          setInputError(null)
+        }
+      }
+    }
+  }, [swapType, outputValueParsed, inputReserveETH, outputReserveToken, independentField, t])
+
   const [inverted, setInverted] = useState(false)
-  const exchangeRate = getExchangeRate(inputValueParsed, inputDecimals, outputValueParsed, outputDecimals)
-  const exchangeRateInverted = getExchangeRate(inputValueParsed, inputDecimals, outputValueParsed, outputDecimals, true)
 
   const marketRate = getMarketRate(
     swapType,
@@ -647,6 +820,9 @@ export default function ExchangePage({ initialCurrency, sending }) {
     outputReserveToken,
     outputDecimals
   )
+
+  const exchangeRate = marketRate
+  const exchangeRateInverted = flipRate(exchangeRate)
 
   const percentSlippage =
     exchangeRate && marketRate
@@ -662,15 +838,13 @@ export default function ExchangePage({ initialCurrency, sending }) {
 
   const enoughAmountToCoverFees = canCoverFees(
     swapType,
-    independentField === INPUT ? independentValueParsed : dependentValue,
+    independentField === INPUT ? independentValueParsed : inputValueParsed,
     inputReserveETH,
     inputReserveToken,
     inputDecimals
   )
 
-  const isValid = sending
-    ? exchangeRate && inputError === null && independentError === null && recipientError === null
-    : exchangeRate && inputError === null && independentError === null
+  const isValid = outputValueParsed && !inputError && !independentError
 
   const estimatedText = `(${t('estimated')})`
   function formatBalance(value) {
@@ -685,13 +859,8 @@ export default function ExchangePage({ initialCurrency, sending }) {
       action: 'place'
     })
 
-    if (independentField === INPUT) {
-      amount = independentValueParsed
-      minimumReturn = dependentValue
-    } else if (independentField === OUTPUT) {
-      amount = dependentValue
-      minimumReturn = independentValueParsed
-    }
+    amount = inputValueParsed
+    minimumReturn = outputValueParsed
 
     if (swapType === ETH_TO_TOKEN) {
       //@TODO: change it later
@@ -714,7 +883,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
         : await method(fromCurrency, toCurrency, amount, minimumReturn, ORDER_FEE, account, privateKey, address))
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
-        : new Promise(res =>
+        : new Promise((resolve, reject) =>
             window.web3.eth.sendTransaction(
               {
                 from: account,
@@ -723,9 +892,9 @@ export default function ExchangePage({ initialCurrency, sending }) {
               },
               (err, hash) => {
                 if (err) {
-                  throw new Error(err)
+                  reject(err)
                 }
-                res({ hash })
+                resolve({ hash })
               }
             )
           ))
@@ -753,7 +922,6 @@ export default function ExchangePage({ initialCurrency, sending }) {
       <CurrencyInputPanel
         title={t('input')}
         allBalances={allBalances}
-        description={inputValueFormatted && independentField === OUTPUT ? estimatedText : ''}
         extraText={inputBalanceFormatted && formatBalance(inputBalanceFormatted)}
         extraTextClickHander={() => {
           if (inputBalance && inputDecimals) {
@@ -780,6 +948,36 @@ export default function ExchangePage({ initialCurrency, sending }) {
       />
       <OversizedPanel>
         <DownArrowBackground>
+          <RateIcon
+            RateIconSVG={rateOp === RATE_OP_MULT ? SVGClose : SVGDiv}
+            icon={rateOp}
+            onClick={() => {
+              dispatchSwapState({ type: 'FLIP_RATE_OP' })
+            }}
+            clickable
+            alt="swap"
+            active={isValid}
+          />
+        </DownArrowBackground>
+      </OversizedPanel>
+      <CurrencyInputPanel
+        title={t('rate')}
+        showCurrencySelector={false}
+        extraText={
+          inverseRateInputSymbol && inverseRate && inverseRateOutputSymbol
+            ? `1 ${inverseRateInputSymbol} = ${amountFormatter(inverseRate, 18, 4, false)} ${inverseRateOutputSymbol}`
+            : '-'
+        }
+        extraTextClickHander={() => {
+          dispatchSwapState({ type: 'FLIP_RATE_OP' })
+        }}
+        value={rateFormatted || ''}
+        onValueChange={rateValue => {
+          dispatchSwapState({ type: 'UPDATE_INDEPENDENT', payload: { value: rateValue, field: RATE } })
+        }}
+      />
+      <OversizedPanel>
+        <DownArrowBackground>
           <DownArrow
             onClick={() => {
               dispatchSwapState({ type: 'FLIP_INDEPENDENT' })
@@ -793,7 +991,7 @@ export default function ExchangePage({ initialCurrency, sending }) {
       <CurrencyInputPanel
         title={t('output')}
         allBalances={allBalances}
-        description={outputValueFormatted && independentField === INPUT ? estimatedText : ''}
+        description={estimatedText}
         extraText={outputBalanceFormatted && formatBalance(outputBalanceFormatted)}
         onCurrencySelected={outputCurrency => {
           dispatchSwapState({ type: 'SELECT_CURRENCY', payload: { currency: outputCurrency, field: OUTPUT } })

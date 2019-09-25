@@ -18,7 +18,7 @@
   "selectToken": "Seleccioná un token",
   "searchOrPaste": "Buscar Token o Pegar Dirección",
   "noExchange": "No se encontró la divisa",
-  "exchangeRate": "Tasa de Cambio",
+  "exchangeRate": "Tasa de Cambio Actual",
   "enterValueCont": "Ingresá un valor en {{ missingCurrencyValue }} para continuar.",
   "selectTokenCont": "Seleccioná un token para continuar.",
   "noLiquidity": "Sin liquidez.",
@@ -74,5 +74,6 @@
   "enterTokenCont": "Ingresá una dirección de token para continuar",
   "place": "Ordenar",
   "highSlippageWarning": "Diferencia mayor al {{ percentage }}% del precio actual",
-  "enoughAmountToCoverFees": "El valor ingresado no alcanza para cubrir el pago al relayer: {{ fee }}"
+  "enoughAmountToCoverFees": "El valor ingresado no alcanza para cubrir el pago al relayer: {{ fee }}",
+  "rate": "Cambio"
 }
