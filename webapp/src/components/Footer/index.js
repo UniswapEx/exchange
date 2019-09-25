@@ -83,7 +83,7 @@ export default function Footer() {
           <Link id="link" href="https://github.com/UniswapEx/exchange">
             <h1 id="title">Code</h1>
           </Link>
-          <Link id="link" href="https://etherscan.io/address/">
+          <Link id="link" href="https://etherscan.io/address/0x2Aba5DEd72B165a9aB5877Fd3669215906F7aCFe">
             <h1 id="title">Donate ❤</h1>
           </Link>
         </Title>
