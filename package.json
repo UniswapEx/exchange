@@ -6,7 +6,9 @@
   "scripts": {
     "test": "scripts/test.sh",
     "postinstall": "cd webapp && npm install",
-    "build": "cd webapp && npm run build"
+    "prebuild": "rm -rf public",
+    "build": "cd webapp && npm run build",
+    "postbuild": "mkdir -p public && cp -r webapp/build/* public && rm -r webapp/build"
   },
   "repository": {
     "type": "git",

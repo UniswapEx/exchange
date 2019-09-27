@@ -3,9 +3,18 @@
   "build": {
     "src": "package.json",
     "use": "@now/static-build",
-    "config": { "distDir": "webapp/build" },
     "env": {
       "REACT_APP_NETWORK_URL": "@app_network_url"
     }
-  }
+  },
+  "routes": [
+    {"src": "^/favicon.ico", "dest": "/favicon.ico"},
+    {"src": "^/manifest.json", "dest": "/manifest.json"},
+    {"src": "^/service-worker.json", "dest": "/service-worker.json"},
+    {"src": "^/asset-manifest.json", "dest": "/asset-manifest.json"},
+    {"src": "^/asset-manifest.json", "dest": "/asset-manifest.json"},
+    {"src": "^/static/(.*)", "dest": "/static/$1"},
+    {"src": "^/locales/(.*)", "dest": "/locales/$1"},
+    {"src": "^/(.*)", "dest": "/index.html"}
+  ]
 }
