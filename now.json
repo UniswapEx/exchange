@@ -3,9 +3,9 @@
   "name": "UniswapEX",
   "alias": "uniswapex.io",
   "build": {
-    "src": "webapp/package.json",
+    "src": "package.json",
     "use": "@now/static-build",
-    "config": { "distDir": "build" },
+    "config": { "distDir": "webapp/build" },
     "env": {
       "REACT_APP_NETWORK_URL": "@app_network_url"
     }

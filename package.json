@@ -4,7 +4,9 @@
   "description": "Uniswap Order Exchange",
   "main": "truffle-config.js",
   "scripts": {
-    "test": "scripts/test.sh"
+    "test": "scripts/test.sh",
+    "postinstall": "cd webapp && npm install",
+    "build": "cd webapp && npm run build"
   },
   "repository": {
     "type": "git",
