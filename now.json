@@ -1,7 +1,5 @@
 {
   "version": 2,
-  "name": "UniswapEX",
-  "alias": "uniswapex.io",
   "build": {
     "src": "package.json",
     "use": "@now/static-build",
