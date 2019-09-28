@@ -661,18 +661,10 @@ export default function ExchangePage({ initialCurrency }) {
     }
   }, [independentValue, independentDecimals, t])
 
-  // calculate slippage from target rate
-  const { maximum: dependentValueMaximum } = calculateSlippageBounds(
-    dependentValue,
-    swapType === TOKEN_TO_TOKEN,
-    tokenAllowedSlippageBig,
-    allowedSlippageBig
-  )
-
   // validate input allowance + balance
   const [showUnlock, setShowUnlock] = useState(false)
   useEffect(() => {
-    const inputValueCalculation = independentField === INPUT ? independentValueParsed : dependentValueMaximum
+    const inputValueCalculation = inputValueParsed
     if (inputBalance && (inputAllowance || inputCurrency === 'ETH') && inputValueCalculation) {
       if (inputBalance.lt(inputValueCalculation)) {
         setInputError(t('insufficientBalance'))
@@ -685,7 +677,7 @@ export default function ExchangePage({ initialCurrency }) {
         setShowUnlock(false)
       }
     }
-  }, [independentField, independentValueParsed, dependentValueMaximum, inputBalance, inputCurrency, inputAllowance, t])
+  }, [inputBalance, inputCurrency, inputAllowance, t, inputValueParsed])
 
   // calculate dependent value
   useEffect(() => {
