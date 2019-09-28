@@ -485,7 +485,7 @@ function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, input
   if (swapType === ETH_TO_TOKEN) {
     ethValue = value
   } else {
-    const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(18))
+    const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals))
     const ethRate = getExchangeRate(inputReserveToken, inputDecimals, inputReserveETH, 18)
     if (!ethRate) {
       return true
