@@ -572,7 +572,7 @@ export default function ExchangePage({ initialCurrency }) {
 
   const inputValueParsed = independentField === INPUT ? independentValueParsed : inputValue
   const inputValueFormatted =
-    independentField === INPUT ? independentValue : amountFormatter(inputValue, 18, Math.min(4, 18), false)
+    independentField === INPUT ? independentValue : amountFormatter(inputValue, inputDecimals, Math.min(4, 18), false)
 
   let outputValueFormatted
   let outputValueParsed
@@ -814,7 +814,7 @@ export default function ExchangePage({ initialCurrency }) {
           reserveAmount = inputReserveETH
         }
 
-        if (outputValueParsed.gt(reserveAmount)) {
+        if (reserveAmount && outputValueParsed.gt(reserveAmount)) {
           setIndependentError(t('insufficientLiquidity'))
         } else {
           setIndependentError(null)
