@@ -485,7 +485,7 @@ function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, input
   if (swapType === ETH_TO_TOKEN) {
     ethValue = value
   } else {
-    const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(18))
+    const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals))
     const ethRate = getExchangeRate(inputReserveToken, inputDecimals, inputReserveETH, 18)
     if (!ethRate) {
       return true
@@ -572,7 +572,7 @@ export default function ExchangePage({ initialCurrency }) {
 
   const inputValueParsed = independentField === INPUT ? independentValueParsed : inputValue
   const inputValueFormatted =
-    independentField === INPUT ? independentValue : amountFormatter(inputValue, 18, Math.min(4, 18), false)
+    independentField === INPUT ? independentValue : amountFormatter(inputValue, inputDecimals, Math.min(4, 18), false)
 
   let outputValueFormatted
   let outputValueParsed
@@ -806,7 +806,7 @@ export default function ExchangePage({ initialCurrency }) {
           reserveAmount = inputReserveETH
         }
 
-        if (outputValueParsed.gt(reserveAmount)) {
+        if (reserveAmount && outputValueParsed.gt(reserveAmount)) {
           setIndependentError(t('insufficientLiquidity'))
         } else {
           setIndependentError(null)
