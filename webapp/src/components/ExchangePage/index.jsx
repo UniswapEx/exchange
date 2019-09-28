@@ -672,7 +672,7 @@ export default function ExchangePage({ initialCurrency }) {
   // validate input allowance + balance
   const [showUnlock, setShowUnlock] = useState(false)
   useEffect(() => {
-    const inputValueCalculation = independentField === INPUT ? independentValueParsed : dependentValueMaximum
+    const inputValueCalculation = inputValueParsed
     if (inputBalance && (inputAllowance || inputCurrency === 'ETH') && inputValueCalculation) {
       if (inputBalance.lt(inputValueCalculation)) {
         setInputError(t('insufficientBalance'))
@@ -685,7 +685,7 @@ export default function ExchangePage({ initialCurrency }) {
         setShowUnlock(false)
       }
     }
-  }, [independentField, independentValueParsed, dependentValueMaximum, inputBalance, inputCurrency, inputAllowance, t])
+  }, [inputBalance, inputCurrency, inputAllowance, t, inputValueParsed])
 
   // calculate dependent value
   useEffect(() => {
