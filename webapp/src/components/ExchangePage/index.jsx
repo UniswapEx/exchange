@@ -661,14 +661,6 @@ export default function ExchangePage({ initialCurrency }) {
     }
   }, [independentValue, independentDecimals, t])
 
-  // calculate slippage from target rate
-  const { maximum: dependentValueMaximum } = calculateSlippageBounds(
-    dependentValue,
-    swapType === TOKEN_TO_TOKEN,
-    tokenAllowedSlippageBig,
-    allowedSlippageBig
-  )
-
   // validate input allowance + balance
   const [showUnlock, setShowUnlock] = useState(false)
   useEffect(() => {
