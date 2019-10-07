@@ -47,7 +47,7 @@ An order is composed by:
 | owner     | Owner of the order                                                     |
 | witness   | Ephemeral address as salt used to avoid relayer-front-runner execution |
 
-Every order has a fee which is the _payment_ to the relayer for performing the trade. This fee should be higher than the transaction cost of executing the order. So far, we set a fixed fee of 0.01 ETH but we expect to have it configurable when placing the order.
+Every order has a fee which is the _payment_ to the relayer for performing the trade. This fee should be higher than the transaction cost of executing the order. So far, we set a fixed fee of 0.006 ETH but we expect to have it configurable when placing the order. This fee represents sending the order execution transaction by the [relayer](#relayers) with 20 GWEI.
 
 One of the biggest challenges when working with ERC20 tokens is dealing with the approve and transferFrom pattern; it confuses the user, makes transacting more expensive, and it's often used with "unlimited" authorizations, forcing the user to trust the contract.
 

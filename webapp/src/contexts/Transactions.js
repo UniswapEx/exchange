@@ -23,7 +23,6 @@ function reducer(state, { type, payload }) {
   switch (type) {
     case ADD: {
       const { networkId, hash, response } = payload
-      console.log(hash)
       if (safeAccess(state, [networkId, hash]) !== null) {
         throw Error('Attempted to add existing transaction.')
       }
