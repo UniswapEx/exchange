@@ -902,6 +902,7 @@ export default function ExchangePage({ initialCurrency }) {
   const [customSlippageError] = useState('')
 
   const allBalances = useFetchAllBalances()
+  const filteredOrders = orders.filter(Boolean) // Remove empty/cancelled orders
 
   return (
     <>
@@ -1047,14 +1048,14 @@ export default function ExchangePage({ initialCurrency }) {
         </div>
       )}
       <div>
-        <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
+        <p className="orders-title">{`${t('Orders')} ${filteredOrders.length > 0 ? `(${filteredOrders.length})` : ''}`}</p>
         {isFetchingOrders ? (
           <SpinnerWrapper src={Circle} alt="loader" />
-        ) : orders.length === 0 ? (
+        ) : filteredOrders.length === 0 ? (
           <p>{t('noOpenOrders')}</p>
         ) : (
           <div>
-            {orders.filter(Boolean).map((order, index) => {
+            {filteredOrders.map((order, index) => {
               const fromToken = order.fromToken === ETH_ADDRESS ? 'ETH' : order.fromToken
               const toToken = order.toToken === ETH_ADDRESS ? 'ETH' : order.toToken
 
