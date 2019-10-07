@@ -31,6 +31,7 @@ let inputValue
 let isFetchingOrders = true
 let hasFetchedOrders
 let orders = []
+const ordersAdded = {}
 
 const INPUT = 0
 const OUTPUT = 1
@@ -41,8 +42,6 @@ const TOKEN_TO_ETH = 1
 const TOKEN_TO_TOKEN = 2
 
 // Denominated in bips
-const ALLOWED_SLIPPAGE_DEFAULT = 100
-const TOKEN_ALLOWED_SLIPPAGE_DEFAULT = 100
 const SLIPPAGE_WARNING = '30' // [30+%
 
 const RATE_OP_MULT = 'x'
@@ -52,12 +51,13 @@ const RATE_OP_DIV = '/'
 const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 
 // Bytes
-const TRANSFER_TX_LENGTH = 138
+const ORDER_BYTES_LENGTH = 448
+const TRANSFER_TX_LENGTH= 136
 const TX_PADDED_BYTES_BOILERPLATE = 128
 
 // Contract
 const CONTRACT_DEPLOYED_BLOCK = 8579313
-const TRANSFER_SELECTOR = '0xa9059cbb'
+const TRANSFER_SELECTOR = 'a9059cbb'
 const BALANCE_SELECTOR = '0x70a08231'
 const DEPOSIT_ORDER_EVENT_TOPIC0 = '0x294738b98bcebacf616fd72532d3d8d8d229807bf03b68b25681bfbbdb3d3fe5'
 
@@ -149,19 +149,6 @@ const SpinnerWrapper = styled(Spinner)`
   margin: 0 0.25rem 0 0.25rem;
 `
 
-function calculateSlippageBounds(value, token = false, tokenAllowedSlippage, allowedSlippage) {
-  if (value) {
-    const offset = value.mul(token ? tokenAllowedSlippage : allowedSlippage).div(ethers.utils.bigNumberify(10000))
-    const minimum = value.sub(offset)
-    const maximum = value.add(offset)
-    return {
-      minimum: minimum.lt(ethers.constants.Zero) ? ethers.constants.Zero : minimum,
-      maximum: maximum.gt(ethers.constants.MaxUint256) ? ethers.constants.MaxUint256 : maximum
-    }
-  } else {
-    return {}
-  }
-}
 
 function getSwapType(inputCurrency, outputCurrency) {
   if (!inputCurrency || !outputCurrency) {
@@ -385,7 +372,6 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
   // @TODO: move this to "useFetchUserOrders"
   hasFetchedOrders = true
   if (account) {
-    const ordersAdded = {} // Used to remove deplicated or old (cancelled/executed) orders
     try {
       const [transfers, deposits] = await Promise.all([
         fetch(
@@ -407,13 +393,15 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
           const { result } = await res.json()
           // @TODO: UAF - please change it, shame on you Nacho
           // Check if the extra data is related to an order
-          if (result && result.input.indexOf(TRANSFER_SELECTOR) !== -1 && result.input.length > TRANSFER_TX_LENGTH) {
-            const orderData = `0x${result.input.substr(
-              TRANSFER_TX_LENGTH + TX_PADDED_BYTES_BOILERPLATE,
-              result.input.length
-            )}`
+          const indexOfTransfer = result ? result.input.indexOf(TRANSFER_SELECTOR) : -1
+          if (indexOfTransfer !== -1 && result.input.length > ORDER_BYTES_LENGTH) {
+            const orderData = `0x${result.input.substr(indexOfTransfer + TRANSFER_TX_LENGTH + TX_PADDED_BYTES_BOILERPLATE, ORDER_BYTES_LENGTH)}`
             const order = await decodeOrder(uniswapEXContract, orderData)
             if (!order) {
+              if (ordersAdded[orderData] >= 0) {
+                delete orders[ordersAdded[orderData]]
+                delete ordersAdded[orderData]
+              }
               continue
             }
             const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
@@ -431,9 +419,9 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
                 }
               )
             )
-            if (order && !ordersAdded[orderData]) {
+            if (order && ordersAdded[orderData] === undefined) {
               orders.push({ ...order, amount })
-              ordersAdded[orderData] = true
+              ordersAdded[orderData] = orders.length - 1
             }
           }
         }
@@ -448,7 +436,7 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
           // Check the owner from a padded 32-bytes address
           const bytesBoilerplate = 66
           if (`0x${owner.substr(26, bytesBoilerplate).toLowerCase()}` === account.toLowerCase()) {
-            const orderData = `0x${data.substr(bytesBoilerplate + TX_PADDED_BYTES_BOILERPLATE, data.length)}`
+            const orderData = `0x${data.substr(-ORDER_BYTES_LENGTH)}`
             const order = await decodeOrder(uniswapEXContract, orderData)
             const amount = await uniswapEXContract.ethDeposits(key)
             if (order && !ordersAdded[orderData]) {
@@ -464,6 +452,7 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
   }
   isFetchingOrders = false
   setInputError(null) // Hack to update the component state, should be removed
+  setTimeout(() => fetchUserOrders(account, uniswapEXContract, setInputError), 30000)
 }
 
 async function decodeOrder(uniswapEXContract, data) {
@@ -519,12 +508,6 @@ export default function ExchangePage({ initialCurrency }) {
     fetchUserOrders(account, uniswapEXContract, setInputError)
   }
   const addTransaction = useTransactionAdder()
-
-  const [rawSlippage] = useState(ALLOWED_SLIPPAGE_DEFAULT)
-  const [rawTokenSlippage] = useState(TOKEN_ALLOWED_SLIPPAGE_DEFAULT)
-
-  const allowedSlippageBig = ethers.utils.bigNumberify(rawSlippage)
-  const tokenAllowedSlippageBig = ethers.utils.bigNumberify(rawTokenSlippage)
 
   // analytics
   useEffect(() => {
@@ -911,8 +894,9 @@ export default function ExchangePage({ initialCurrency }) {
 
   async function onCancel(order) {
     const { fromToken, toToken, minReturn, fee, owner, witness } = order
-    const tx = await uniswapEXContract.cancelOrder(fromToken, toToken, minReturn, fee, owner, witness)
-    addTransaction(tx)
+    uniswapEXContract.cancelOrder(fromToken, toToken, minReturn, fee, owner, witness).then(response => {
+      addTransaction(response)
+    })
   }
 
   const [customSlippageError] = useState('')
@@ -1070,7 +1054,7 @@ export default function ExchangePage({ initialCurrency }) {
           <p>{t('noOpenOrders')}</p>
         ) : (
           <div>
-            {orders.map((order, index) => {
+            {orders.filter(Boolean).map((order, index) => {
               const fromToken = order.fromToken === ETH_ADDRESS ? 'ETH' : order.fromToken
               const toToken = order.toToken === ETH_ADDRESS ? 'ETH' : order.toToken
 
