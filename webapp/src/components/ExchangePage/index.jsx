@@ -848,7 +848,7 @@ export default function ExchangePage({ initialCurrency }) {
   }
 
   async function onPlace() {
-    let method, fromCurrency, toCurrency, amount, minimumReturn, data
+    let method, fromCurrency, toCurrency, amount, minimumReturn, data, relayerFee
 
     ReactGA.event({
       category: 'place',
@@ -857,6 +857,7 @@ export default function ExchangePage({ initialCurrency }) {
 
     amount = inputValueParsed
     minimumReturn = outputValueParsed
+    relayerFee = ethers.utils.bigNumberify(fee.toString())
 
     if (swapType === ETH_TO_TOKEN) {
       //@TODO: change it later
@@ -875,8 +876,8 @@ export default function ExchangePage({ initialCurrency }) {
     try {
       const { privateKey, address } = ethers.Wallet.createRandom({ extraEntropy: ethers.utils.randomBytes(32) })
       data = await (swapType === ETH_TO_TOKEN
-        ? method(fromCurrency, toCurrency, minimumReturn, fee, account, privateKey, address)
-        : await method(fromCurrency, toCurrency, amount, minimumReturn, fee, account, privateKey, address))
+        ? method(fromCurrency, toCurrency, minimumReturn, relayerFee, account, privateKey, address)
+        : method(fromCurrency, toCurrency, amount, minimumReturn, relayerFee, account, privateKey, address))
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
         : new Promise((resolve, reject) =>
