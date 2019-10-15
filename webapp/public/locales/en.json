@@ -97,5 +97,9 @@
   "toTheRelayer": "to the relayer for executing the order",
   "relayerFee": "The relayer will execute the order with a GAS price of",
   "gasPrice": "Gas Price (GWEI)",
-  "seeHowItWorks": "See how it works"
+  "feeFaq": "Every order has a fee which is the payment to the relayer for performing the trade. This fee should be higher than the transaction cost of executing the order. Lowering this, increase the risk of the order to not being executed making inviable to cover the order execution fees.",
+  "seeHowItWorks": "See how it works",
+  "customGasPrice": "Custom gas price value (GWEI)",
+  "notExecuted": "Your order will not be executed",
+  "mayNotExecuted": "Your order may not be executed"
 }

@@ -78,9 +78,13 @@
   "rate": "Cambio",
   "placeAbove": "Orden {{ rateDelta }}% sobre el mercado",
   "placeBelow": "Orden {{ rateDelta }}% debajo del mercado",
-  "relayerFee": "El relayer va a ejecutar la orden con un precio de GAS de ",
+  "relayerFee": "El relayer va a ejecutar la orden con un precio del GAS de ",
   "feeSet": "Va a pagar una tarifa de ",
   "toTheRelayer": "al relayer por ejecutar la orden",
-  "gasPrice": "Precio del gas (GWEI)",
-  "seeHowItWorks": "Mire como funciona"
+  "gasPrice": "Precio del GAS (GWEI)",
+  "feeFaq": "La tarifa es el pago al relayer. Dicha tarifa debe ser mayor al costo de ejecución de la orden. Si se disminuye, incrementa el riesgo de no poder ejecutarse la orden ya que el relayer no podra cubrir el costo de mandar la transacción",
+  "seeHowItWorks": "Mire como funciona",
+  "customGasPrice": "Precio del GAS customizado (GWEI)",
+  "notExecuted": "Tu orden no se ejecutará",
+  "mayNotExecuted": "Tu orden puede no ejecutarse"
 }

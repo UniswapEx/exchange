@@ -387,9 +387,7 @@ export default function TransactionDetails(props) {
             </QuestionWrapper>
             {showPopup ? (
               <Popup>
-                Every order has a fee which is the payment to the relayer for performing the trade. This fee should be
-                higher than the transaction cost of executing the order. Lowering this, increase the risk of the order
-                to not being executed making inviable to cover the order execution fees.
+                {t('feeFaq')}
               </Popup>
             ) : (
               ''
@@ -461,9 +459,9 @@ export default function TransactionDetails(props) {
               show={activeIndex === 4}
               color={warningType === WARNING_TYPE.emptyInput ? '' : warningType === WARNING_TYPE.noSend ? 'red' : ''}
             >
-              {activeIndex === 4 && warningType.toString() === 'none' && 'Custom gas price value (GWEI)'}
-              {warningType === WARNING_TYPE.noSend && `Your order will not be executed`}
-              {warningType === WARNING_TYPE.almostNoSend && `Your order may not be executed`}
+              {activeIndex === 4 && warningType.toString() === 'none' && t('customGasPrice')}
+              {warningType === WARNING_TYPE.noSend && t('notExecuted')}
+              {warningType === WARNING_TYPE.almostNoSend && t('mayNotExecuted')}
             </BottomError>
           </SlippageRow>
         </SlippageSelector>
