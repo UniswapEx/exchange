@@ -385,13 +385,7 @@ export default function TransactionDetails(props) {
             >
               <HelpCircleStyled src={question} alt="popup" />
             </QuestionWrapper>
-            {showPopup ? (
-              <Popup>
-                {t('feeFaq')}
-              </Popup>
-            ) : (
-              ''
-            )}
+            {showPopup ? <Popup>{t('feeFaq')}</Popup> : ''}
           </SlippageRow>
           <SlippageRow wrap>
             <Option

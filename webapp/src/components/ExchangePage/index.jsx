@@ -400,30 +400,32 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
               indexOfTransfer + TRANSFER_TX_LENGTH + TX_PADDED_BYTES_BOILERPLATE,
               ORDER_BYTES_LENGTH
             )}`
-            const order = await decodeOrder(uniswapEXContract, orderData)
-            if (!order) {
-              if (ordersAdded[orderData] >= 0) {
-                delete orders[ordersAdded[orderData]]
-                delete ordersAdded[orderData]
-              }
-              const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
-              const amount = await new Promise((resolve, reject) =>
-                window.web3.eth.call(
-                  {
-                    to: order.fromToken,
-                    data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
-                  },
-                  (error, amount) => {
-                    if (error) {
-                      reject(error)
+            try {
+              const order = await decodeOrder(uniswapEXContract, orderData)
+              if (!order) {
+                if (ordersAdded[orderData] >= 0) {
+                  delete orders[ordersAdded[orderData]]
+                  delete ordersAdded[orderData]
+                }
+                const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
+                const amount = await new Promise((resolve, reject) =>
+                  window.web3.eth.call(
+                    {
+                      to: order.fromToken,
+                      data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
+                    },
+                    (error, amount) => {
+                      if (error) {
+                        reject(error)
+                      }
+                      resolve(amount)
                     }
-                    resolve(amount)
-                  }
+                  )
                 )
-              )
-              if (order && ordersAdded[orderData] === undefined) {
-                orders.push({ ...order, amount })
-                ordersAdded[orderData] = orders.length - 1
+                if (order && ordersAdded[orderData] === undefined) {
+                  orders.push({ ...order, amount })
+                  ordersAdded[orderData] = orders.length - 1
+                }
               }
             } catch (e) {
               console.warn(`Error decoding order: ${orderData}`)
@@ -1051,9 +1053,11 @@ export default function ExchangePage({ initialCurrency }) {
         <Button
           disabled={!fee || !account || !isValid || customSlippageError === 'invalid' || !enoughAmountToCoverFees}
           onClick={onPlace}
-          warning={fee < ORDER_MIN_FEE || highSlippageWarning || customSlippageError === 'warning' || !enoughAmountToCoverFees}
+          warning={
+            fee < ORDER_MIN_FEE || highSlippageWarning || customSlippageError === 'warning' || !enoughAmountToCoverFees
+          }
         >
-          {(fee < ORDER_MIN_FEE || customSlippageError === 'warning') ? t('placeAnyway') : t('place')}
+          {fee < ORDER_MIN_FEE || customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
         </Button>
       </Flex>
       {!account && <div className="fee-error">{t('noWallet')} </div>}
