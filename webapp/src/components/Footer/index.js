@@ -86,8 +86,8 @@ const TelegramImg = styled.div`
   margin-left: 5px;
   svg {
     fill: ${({ theme }) => theme.uniswapPink};
-      height: 22px;
-    }
+    height: 22px;
+  }
 `
 
 export default function Footer() {
@@ -98,7 +98,7 @@ export default function Footer() {
       <FooterElement>
         <Title>
           <Link id="link" href="https://github.com/UniswapEx/exchange#how-it-works">
-            <h1 id="title">How it works</h1>
+            <h1 id="title">About</h1>
           </Link>
           <Link id="link" href="https://github.com/UniswapEx/exchange">
             <h1 id="title">Code</h1>
@@ -113,7 +113,7 @@ export default function Footer() {
           </Link>
           <Link id="link" href="https://t.me/UniswapEX">
             <TelegramImg>
-            <SVGTelegram />
+              <SVGTelegram />
             </TelegramImg>
           </Link>
         </Title>
