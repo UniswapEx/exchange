@@ -77,5 +77,10 @@
   "enoughAmountToCoverFees": "El valor ingresado no alcanza para cubrir el pago al relayer: {{ fee }}",
   "rate": "Cambio",
   "placeAbove": "Orden {{ rateDelta }}% sobre el mercado",
-  "placeBelow": "Orden {{ rateDelta }}% debajo del mercado"
+  "placeBelow": "Orden {{ rateDelta }}% debajo del mercado",
+  "relayerFee": "El relayer va a ejecutar la orden con un precio de GAS de ",
+  "feeSet": "Va a pagar una tarifa de ",
+  "toTheRelayer": "al relayer por ejecutar la orden",
+  "gasPrice": "Precio del gas (GWEI)",
+  "seeHowItWorks": "Mire como funciona"
 }

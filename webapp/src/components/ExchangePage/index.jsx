@@ -10,6 +10,7 @@ import styled from 'styled-components'
 import { Button } from '../../theme'
 import CurrencyInputPanel, { CurrencySelect, Aligner, StyledTokenName } from '../CurrencyInputPanel'
 import OversizedPanel from '../OversizedPanel'
+import TransactionDetails from '../TransactionDetails'
 import TokenLogo from '../TokenLogo'
 import ArrowDown from '../../assets/svg/SVGArrowDown'
 import Circle from '../../assets/images/circle.svg'
@@ -52,7 +53,7 @@ const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 
 // Bytes
 const ORDER_BYTES_LENGTH = 448
-const TRANSFER_TX_LENGTH= 136
+const TRANSFER_TX_LENGTH = 136
 const TX_PADDED_BYTES_BOILERPLATE = 128
 
 // Contract
@@ -148,7 +149,6 @@ const Order = styled.div`
 const SpinnerWrapper = styled(Spinner)`
   margin: 0 0.25rem 0 0.25rem;
 `
-
 
 function getSwapType(inputCurrency, outputCurrency) {
   if (!inputCurrency || !outputCurrency) {
@@ -395,15 +395,15 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
           // Check if the extra data is related to an order
           const indexOfTransfer = result ? result.input.indexOf(TRANSFER_SELECTOR) : -1
           if (indexOfTransfer !== -1 && result.input.length > ORDER_BYTES_LENGTH) {
-            const orderData = `0x${result.input.substr(indexOfTransfer + TRANSFER_TX_LENGTH + TX_PADDED_BYTES_BOILERPLATE, ORDER_BYTES_LENGTH)}`
-            try {
-              const order = await decodeOrder(uniswapEXContract, orderData)
-              if (!order) {
-                if (ordersAdded[orderData] >= 0) {
-                  delete orders[ordersAdded[orderData]]
-                  delete ordersAdded[orderData]
-                }
-                continue
+            const orderData = `0x${result.input.substr(
+              indexOfTransfer + TRANSFER_TX_LENGTH + TX_PADDED_BYTES_BOILERPLATE,
+              ORDER_BYTES_LENGTH
+            )}`
+            const order = await decodeOrder(uniswapEXContract, orderData)
+            if (!order) {
+              if (ordersAdded[orderData] >= 0) {
+                delete orders[ordersAdded[orderData]]
+                delete ordersAdded[orderData]
               }
               const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
               const amount = await new Promise((resolve, reject) =>
@@ -471,12 +471,12 @@ async function decodeOrder(uniswapEXContract, data) {
   }
 }
 
-function canCoverFees(swapType, value, inputReserveETH, inputReserveToken, inputDecimals) {
+function canCoverFees(swapType, fee, value, inputReserveETH, inputReserveToken, inputDecimals) {
   if (!value || swapType === null) {
     return true
   }
 
-  const orderFee = ethers.utils.bigNumberify(ORDER_FEE)
+  const orderFee = ethers.utils.bigNumberify(fee.toString())
   let ethValue
 
   if (swapType === ETH_TO_TOKEN) {
@@ -829,8 +829,11 @@ export default function ExchangePage({ initialCurrency }) {
   const highSlippageWarning = rateDelta && rateDelta.lt(ethers.utils.bigNumberify(0).sub(limitSlippage))
   const rateDeltaFormatted = amountFormatter(rateDelta, 16, 2, true)
 
+  const [fee, setFee] = useState(ORDER_FEE)
+
   const enoughAmountToCoverFees = canCoverFees(
     swapType,
+    fee,
     independentField === INPUT ? independentValueParsed : inputValueParsed,
     inputReserveETH,
     inputReserveToken,
@@ -1022,6 +1025,26 @@ export default function ExchangePage({ initialCurrency }) {
           )}
         </ExchangeRateWrapper>
       </OversizedPanel>
+      <TransactionDetails
+        account={account}
+        highSlippageWarning={highSlippageWarning}
+        inputError={inputError}
+        independentError={independentError}
+        inputCurrency={inputCurrency}
+        outputCurrency={outputCurrency}
+        independentValue={independentValue}
+        independentValueParsed={independentValueParsed}
+        independentField={independentField}
+        INPUT={INPUT}
+        inputValueParsed={inputValueParsed}
+        outputValueParsed={outputValueParsed}
+        inputSymbol={inputSymbol}
+        outputSymbol={outputSymbol}
+        dependentDecimals={dependentDecimals}
+        independentDecimals={independentDecimals}
+        fee={fee}
+        setFee={setFee}
+      />
       <Flex>
         <Button
           disabled={!account || !isValid || customSlippageError === 'invalid' || !enoughAmountToCoverFees}
@@ -1031,7 +1054,7 @@ export default function ExchangePage({ initialCurrency }) {
           {customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
         </Button>
       </Flex>
-      { !account && <div className="fee-error">{t('noWallet')} </div>}
+      {!account && <div className="fee-error">{t('noWallet')} </div>}
       {rateDeltaFormatted && (
         <div className="market-delta-info">
           {rateDeltaFormatted.startsWith('-')
@@ -1052,11 +1075,16 @@ export default function ExchangePage({ initialCurrency }) {
           <span role="img" aria-label="error">
             💸
           </span>
-          {t('enoughAmountToCoverFees', { fee: ORDER_FEE / 1e18 })} <TokenLogo address={'ETH'} />
+          {t('enoughAmountToCoverFees', {
+            fee: amountFormatter(ethers.utils.bigNumberify(fee.toString()), 18, 4, false)
+          })}{' '}
+          <TokenLogo address={'ETH'} />
         </div>
       )}
       <div>
-        <p className="orders-title">{`${t('Orders')} ${filteredOrders.length > 0 ? `(${filteredOrders.length})` : ''}`}</p>
+        <p className="orders-title">{`${t('Orders')} ${
+          filteredOrders.length > 0 ? `(${filteredOrders.length})` : ''
+        }`}</p>
         {isFetchingOrders ? (
           <SpinnerWrapper src={Circle} alt="loader" />
         ) : filteredOrders.length === 0 ? (

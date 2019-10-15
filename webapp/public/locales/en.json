@@ -92,5 +92,10 @@
   "enoughAmountToCoverFees": "Insufficient amount to cover the relayer fee: {{ fee }}",
   "rate": "Rate",
   "placeAbove": "Order {{ rateDelta }}% above market",
-  "placeBelow": "Order {{ rateDelta }}% below market"
+  "placeBelow": "Order {{ rateDelta }}% below market",
+  "feeSet": "You will pay a fee of",
+  "toTheRelayer": "to the relayer for executing the order",
+  "relayerFee": "The relayer will execute the order with a GAS price of",
+  "gasPrice": "Gas Price (GWEI)",
+  "seeHowItWorks": "See how it works"
 }
