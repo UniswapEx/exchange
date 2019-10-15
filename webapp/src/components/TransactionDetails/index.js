@@ -3,6 +3,8 @@ import ReactGA from 'react-ga'
 import { useTranslation } from 'react-i18next'
 import styled, { css, keyframes } from 'styled-components'
 import { darken, lighten } from 'polished'
+import { ethers } from 'ethers'
+
 import { isAddress, amountFormatter } from '../../utils'
 import { useDebounce } from '../../hooks'
 
@@ -10,12 +12,12 @@ import question from '../../assets/images/question.svg'
 
 import NewContextualInfo from '../../components/ContextualInfoNew'
 
+const EXECUTE_ORDER_GAS_USAGE = '300000' // 300,000 GAS
+
 const WARNING_TYPE = Object.freeze({
   none: 'none',
-  emptyInput: 'emptyInput',
-  invalidEntryBound: 'invalidEntryBound',
-  riskyEntryHigh: 'riskyEntryHigh',
-  riskyEntryLow: 'riskyEntryLow'
+  noSend: 'noSend',
+  almostNoSend: 'almostNoSend'
 })
 
 const Flex = styled.div`
@@ -79,9 +81,9 @@ const fadeIn = keyframes`
 
 const Popup = styled(Flex)`
   position: absolute;
-  width: 228px;
+  width: 300px;
   left: -78px;
-  top: -124px;
+  top: -135px;
   flex-direction: column;
   align-items: center;
   padding: 0.6rem 1rem;
@@ -296,7 +298,7 @@ const ValueWrapper = styled.span`
 export default function TransactionDetails(props) {
   const { t } = useTranslation()
 
-  const [activeIndex, setActiveIndex] = useState(3)
+  const [activeIndex, setActiveIndex] = useState(2)
 
   const [warningType, setWarningType] = useState(WARNING_TYPE.none)
 
@@ -305,11 +307,12 @@ export default function TransactionDetails(props) {
   const [showPopup, setPopup] = useState(false)
 
   const [userInput, setUserInput] = useState('')
+
   const debouncedInput = useDebounce(userInput, 150)
 
   useEffect(() => {
     if (activeIndex === 4) {
-      checkBounds(debouncedInput)
+      setFromFixed(4, debouncedInput)
     }
   })
 
@@ -368,7 +371,7 @@ export default function TransactionDetails(props) {
         {renderTransactionDetails()}
         <SlippageSelector>
           <SlippageRow>
-            Limit additional price slippage
+            {t('gasPrice')}
             <QuestionWrapper
               onClick={() => {
                 setPopup(!showPopup)
@@ -382,55 +385,42 @@ export default function TransactionDetails(props) {
             >
               <HelpCircleStyled src={question} alt="popup" />
             </QuestionWrapper>
-            {showPopup ? (
-              <Popup>
-                Lowering this limit decreases your risk of frontrunning. However, this makes it more likely that your
-                transaction will fail due to normal price movements.
-              </Popup>
-            ) : (
-              ''
-            )}
+            {showPopup ? <Popup>{t('feeFaq')}</Popup> : ''}
           </SlippageRow>
           <SlippageRow wrap>
             <Option
               onClick={() => {
-                setFromFixed(1, 0.1)
+                setFromFixed(1, 10)
               }}
               active={activeIndex === 1}
             >
-              0.1%
-            </Option>
-            <Option
-              onClick={() => {
-                setFromFixed(2, 0.5)
-              }}
-              active={activeIndex === 2}
-            >
-              0.5%
+              10
             </Option>
             <OptionLarge
               onClick={() => {
-                setFromFixed(3, 1)
+                setFromFixed(2, 20)
+              }}
+              active={activeIndex === 2}
+            >
+              20 <Faded>(suggested)</Faded>
+            </OptionLarge>
+            <Option
+              onClick={() => {
+                setFromFixed(3, 40)
               }}
               active={activeIndex === 3}
             >
-              1% <Faded>(suggested)</Faded>
-            </OptionLarge>
+              40
+            </Option>
             <OptionCustom
               active={activeIndex === 4}
-              color={
-                warningType === WARNING_TYPE.emptyInput
-                  ? ''
-                  : warningType !== WARNING_TYPE.none && warningType !== WARNING_TYPE.riskyEntryLow
-                  ? 'red'
-                  : ''
-              }
+              color={warningType === WARNING_TYPE.noSend ? 'red' : ''}
               onClick={() => {
                 setFromCustom()
               }}
             >
               <FlexBetween>
-                {!(warningType === WARNING_TYPE.none || warningType === WARNING_TYPE.emptyInput) && (
+                {warningType !== WARNING_TYPE.none && (
                   <span role="img" aria-label="warning">
                     ⚠️
                   </span>
@@ -450,44 +440,22 @@ export default function TransactionDetails(props) {
                   }
                   value={activeIndex === 4 ? userInput : ''}
                   onChange={parseInput}
-                  color={
-                    warningType === WARNING_TYPE.emptyInput
-                      ? ''
-                      : warningType !== WARNING_TYPE.none && warningType !== WARNING_TYPE.riskyEntryLow
-                      ? 'red'
-                      : ''
-                  }
+                  color={warningType === WARNING_TYPE.noSend ? 'red' : ''}
                 />
                 <Percent
-                  color={
-                    activeIndex !== 4
-                      ? 'faded'
-                      : warningType === WARNING_TYPE.riskyEntryHigh || warningType === WARNING_TYPE.invalidEntryBound
-                      ? 'red'
-                      : ''
-                  }
-                >
-                  %
-                </Percent>
+                  color={activeIndex !== 4 ? 'faded' : warningType === WARNING_TYPE.noSend ? 'red' : ''}
+                ></Percent>
               </FlexBetween>
             </OptionCustom>
           </SlippageRow>
           <SlippageRow>
             <BottomError
               show={activeIndex === 4}
-              color={
-                warningType === WARNING_TYPE.emptyInput
-                  ? ''
-                  : warningType !== WARNING_TYPE.none && warningType !== WARNING_TYPE.riskyEntryLow
-                  ? 'red'
-                  : ''
-              }
+              color={warningType === WARNING_TYPE.emptyInput ? '' : warningType === WARNING_TYPE.noSend ? 'red' : ''}
             >
-              {activeIndex === 4 && warningType.toString() === 'none' && 'Custom slippage value'}
-              {warningType === WARNING_TYPE.emptyInput && 'Enter a slippage percentage'}
-              {warningType === WARNING_TYPE.invalidEntryBound && 'Please select a value no greater than 50%'}
-              {warningType === WARNING_TYPE.riskyEntryHigh && 'Your transaction may be frontrun'}
-              {warningType === WARNING_TYPE.riskyEntryLow && 'Your transaction may fail'}
+              {activeIndex === 4 && warningType.toString() === 'none' && t('customGasPrice')}
+              {warningType === WARNING_TYPE.noSend && t('notExecuted')}
+              {warningType === WARNING_TYPE.almostNoSend && t('mayNotExecuted')}
             </BottomError>
           </SlippageRow>
         </SlippageSelector>
@@ -496,66 +464,29 @@ export default function TransactionDetails(props) {
   }
 
   const setFromCustom = () => {
-    setActiveIndex(4)
     inputRef.current.focus()
     // if there's a value, evaluate the bounds
-    checkBounds(debouncedInput)
+    setFromFixed(4, debouncedInput)
   }
 
   // used for slippage presets
-  const setFromFixed = (index, slippage) => {
-    // update slippage in parent, reset errors and input state
-    updateSlippage(slippage)
-    setWarningType(WARNING_TYPE.none)
+  const setFromFixed = (index, gasPrice) => {
+    if (gasPrice < 1) {
+      setWarningType(WARNING_TYPE.noSend)
+    } else if (gasPrice < 5) {
+      setWarningType(WARNING_TYPE.almostNoSend)
+    } else {
+      setWarningType(WARNING_TYPE.none)
+    }
     setActiveIndex(index)
-    props.setcustomSlippageError('valid`')
-  }
-
-  const checkBounds = slippageValue => {
-    setWarningType(WARNING_TYPE.none)
-    props.setcustomSlippageError('valid')
-
-    if (slippageValue === '' || slippageValue === '.') {
-      props.setcustomSlippageError('invalid')
-      return setWarningType(WARNING_TYPE.emptyInput)
-    }
-
-    // check bounds and set errors
-    if (Number(slippageValue) < 0 || Number(slippageValue) > 50) {
-      props.setcustomSlippageError('invalid')
-      return setWarningType(WARNING_TYPE.invalidEntryBound)
-    }
-    if (Number(slippageValue) >= 0 && Number(slippageValue) < 0.1) {
-      props.setcustomSlippageError('valid')
-      setWarningType(WARNING_TYPE.riskyEntryLow)
-    }
-    if (Number(slippageValue) > 5) {
-      props.setcustomSlippageError('warning')
-      setWarningType(WARNING_TYPE.riskyEntryHigh)
-    }
-    //update the actual slippage value in parent
-    updateSlippage(Number(slippageValue))
+    const newFee = EXECUTE_ORDER_GAS_USAGE * gasPrice * 1e9 || 0
+    props.setFee(newFee)
   }
 
   // check that the theyve entered number and correct decimal
   const parseInput = e => {
     let input = e.target.value
-
-    // restrict to 2 decimal places
-    let acceptableValues = [/^$/, /^\d{1,2}$/, /^\d{0,2}\.\d{0,2}$/]
-    // if its within accepted decimal limit, update the input state
-    if (acceptableValues.some(a => a.test(input))) {
-      setUserInput(input)
-    }
-  }
-
-  const updateSlippage = newSlippage => {
-    // round to 2 decimals to prevent ethers error
-    let numParsed = parseInt(newSlippage * 100)
-
-    // set both slippage values in parents
-    props.setRawSlippage(numParsed)
-    props.setRawTokenSlippage(numParsed)
+    setUserInput(input)
   }
 
   const b = text => <Bold>{text}</Bold>
@@ -566,123 +497,20 @@ export default function TransactionDetails(props) {
       action: 'Open'
     })
 
-    if (props.independentField === props.INPUT) {
-      return props.sending ? (
-        <TransactionInfo>
-          <div>
-            {t('youAreSelling')}{' '}
-            <ValueWrapper>
-              {b(
-                `${amountFormatter(
-                  props.independentValueParsed,
-                  props.independentDecimals,
-                  Math.min(4, props.independentDecimals)
-                )} ${props.inputSymbol}`
-              )}
-            </ValueWrapper>
-          </div>
-          <LastSummaryText>
-            {b(props.recipientAddress)} {t('willReceive')}{' '}
-            <ValueWrapper>
-              {b(
-                `${amountFormatter(
-                  props.dependentValueMinumum,
-                  props.dependentDecimals,
-                  Math.min(4, props.dependentDecimals)
-                )} ${props.outputSymbol}`
-              )}
-            </ValueWrapper>{' '}
-          </LastSummaryText>
-          <LastSummaryText>
-            {t('priceChange')} <ValueWrapper>{b(`${props.percentSlippageFormatted}%`)}</ValueWrapper>
-          </LastSummaryText>
-        </TransactionInfo>
-      ) : (
-        <TransactionInfo>
-          <div>
-            {t('youAreSelling')}{' '}
-            <ValueWrapper>
-              {b(
-                `${amountFormatter(
-                  props.independentValueParsed,
-                  props.independentDecimals,
-                  Math.min(4, props.independentDecimals)
-                )} ${props.inputSymbol}`
-              )}
-            </ValueWrapper>{' '}
-            {t('forAtLeast')}
-            <ValueWrapper>
-              {b(
-                `${amountFormatter(
-                  props.dependentValueMinumum,
-                  props.dependentDecimals,
-                  Math.min(4, props.dependentDecimals)
-                )} ${props.outputSymbol}`
-              )}
-            </ValueWrapper>
-          </div>
-          <LastSummaryText>
-            {t('priceChange')} <ValueWrapper>{b(`${props.percentSlippageFormatted}%`)}</ValueWrapper>
-          </LastSummaryText>
-        </TransactionInfo>
-      )
-    } else {
-      return props.sending ? (
-        <TransactionInfo>
-          <div>
-            {t('youAreSending')}{' '}
-            <ValueWrapper>
-              {b(
-                `${amountFormatter(
-                  props.independentValueParsed,
-                  props.independentDecimals,
-                  Math.min(4, props.independentDecimals)
-                )} ${props.outputSymbol}`
-              )}
-            </ValueWrapper>{' '}
-            {t('to')} {b(props.recipientAddress)} {t('forAtMost')}{' '}
-            <ValueWrapper>
-              {b(
-                `${amountFormatter(
-                  props.dependentValueMaximum,
-                  props.dependentDecimals,
-                  Math.min(4, props.dependentDecimals)
-                )} ${props.inputSymbol}`
-              )}
-            </ValueWrapper>{' '}
-          </div>
-          <LastSummaryText>
-            {t('priceChange')} <ValueWrapper>{b(`${props.percentSlippageFormatted}%`)}</ValueWrapper>
-          </LastSummaryText>
-        </TransactionInfo>
-      ) : (
-        <TransactionInfo>
-          {t('youAreBuying')}{' '}
+    return (
+      <TransactionInfo>
+        <div>
+          {t('feeSet')}
           <ValueWrapper>
-            {b(
-              `${amountFormatter(
-                props.independentValueParsed,
-                props.independentDecimals,
-                Math.min(4, props.independentDecimals)
-              )} ${props.outputSymbol}`
-            )}
-          </ValueWrapper>{' '}
-          {t('forAtMost')}{' '}
-          <ValueWrapper>
-            {b(
-              `${amountFormatter(
-                props.dependentValueMaximum,
-                props.dependentDecimals,
-                Math.min(4, props.dependentDecimals)
-              )} ${props.inputSymbol}`
-            )}
-          </ValueWrapper>{' '}
-          <LastSummaryText>
-            {t('priceChange')} <ValueWrapper>{b(`${props.percentSlippageFormatted}%`)}</ValueWrapper>
-          </LastSummaryText>
-        </TransactionInfo>
-      )
-    }
+            {b(`${amountFormatter(ethers.utils.bigNumberify(props.fee.toString()), 18, 4)} ETH`)}
+          </ValueWrapper>
+          {t('toTheRelayer')}
+        </div>
+        <LastSummaryText>
+          {t('relayerFee')} <ValueWrapper>{b(`${props.fee / 1e9 / EXECUTE_ORDER_GAS_USAGE} GWEI`)}</ValueWrapper>
+        </LastSummaryText>
+      </TransactionInfo>
+    )
   }
   return <>{renderSummary()}</>
 }

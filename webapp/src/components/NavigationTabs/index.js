@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 import { transparentize } from 'polished'
 
+import { Link } from '../../theme'
 import { useBodyKeyDown } from '../../hooks'
 import { useBetaMessageManager } from '../../contexts/LocalStorage'
 
@@ -42,6 +43,11 @@ const BetaMessage = styled.div`
     position: absolute;
     color: ${({ theme }) => theme.wisteriaPurple};
   }
+
+  .how-it-works {
+    text-decoration: underline;
+    margin-left: 5px;
+  }
 `
 
 function NavigationTabs({ location: { pathname }, history }) {
@@ -74,6 +80,9 @@ function NavigationTabs({ location: { pathname }, history }) {
             💀
           </span>{' '}
           {t('betaWarning')}
+          <Link id="link" href="https://github.com/UniswapEx/exchange#how-it-works" className="how-it-works">
+            {t('seeHowItWorks')}
+          </Link>
         </BetaMessage>
       )}
     </>
