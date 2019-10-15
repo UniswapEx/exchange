@@ -407,25 +407,26 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
                   delete orders[ordersAdded[orderData]]
                   delete ordersAdded[orderData]
                 }
-                const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
-                const amount = await new Promise((resolve, reject) =>
-                  window.web3.eth.call(
-                    {
-                      to: order.fromToken,
-                      data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
-                    },
-                    (error, amount) => {
-                      if (error) {
-                        reject(error)
-                      }
-                      resolve(amount)
+                continue
+              }
+              const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
+              const amount = await new Promise((resolve, reject) =>
+                window.web3.eth.call(
+                  {
+                    to: order.fromToken,
+                    data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
+                  },
+                  (error, amount) => {
+                    if (error) {
+                      reject(error)
                     }
-                  )
+                    resolve(amount)
+                  }
                 )
-                if (order && ordersAdded[orderData] === undefined) {
-                  orders.push({ ...order, amount })
-                  ordersAdded[orderData] = orders.length - 1
-                }
+              )
+              if (order && ordersAdded[orderData] === undefined) {
+                orders.push({ ...order, amount })
+                ordersAdded[orderData] = orders.length - 1
               }
             } catch (e) {
               console.warn(`Error decoding order: ${orderData}`)
