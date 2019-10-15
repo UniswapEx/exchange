@@ -875,8 +875,8 @@ export default function ExchangePage({ initialCurrency }) {
     try {
       const { privateKey, address } = ethers.Wallet.createRandom({ extraEntropy: ethers.utils.randomBytes(32) })
       data = await (swapType === ETH_TO_TOKEN
-        ? method(fromCurrency, toCurrency, minimumReturn, ORDER_FEE, account, privateKey, address)
-        : await method(fromCurrency, toCurrency, amount, minimumReturn, ORDER_FEE, account, privateKey, address))
+        ? method(fromCurrency, toCurrency, minimumReturn, fee, account, privateKey, address)
+        : await method(fromCurrency, toCurrency, amount, minimumReturn, fee, account, privateKey, address))
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
         : new Promise((resolve, reject) =>
