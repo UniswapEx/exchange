@@ -396,32 +396,36 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
           const indexOfTransfer = result ? result.input.indexOf(TRANSFER_SELECTOR) : -1
           if (indexOfTransfer !== -1 && result.input.length > ORDER_BYTES_LENGTH) {
             const orderData = `0x${result.input.substr(indexOfTransfer + TRANSFER_TX_LENGTH + TX_PADDED_BYTES_BOILERPLATE, ORDER_BYTES_LENGTH)}`
-            const order = await decodeOrder(uniswapEXContract, orderData)
-            if (!order) {
-              if (ordersAdded[orderData] >= 0) {
-                delete orders[ordersAdded[orderData]]
-                delete ordersAdded[orderData]
-              }
-              continue
-            }
-            const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
-            const amount = await new Promise((resolve, reject) =>
-              window.web3.eth.call(
-                {
-                  to: order.fromToken,
-                  data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
-                },
-                (error, amount) => {
-                  if (error) {
-                    reject(error)
-                  }
-                  resolve(amount)
+            try {
+              const order = await decodeOrder(uniswapEXContract, orderData)
+              if (!order) {
+                if (ordersAdded[orderData] >= 0) {
+                  delete orders[ordersAdded[orderData]]
+                  delete ordersAdded[orderData]
                 }
+                continue
+              }
+              const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
+              const amount = await new Promise((resolve, reject) =>
+                window.web3.eth.call(
+                  {
+                    to: order.fromToken,
+                    data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
+                  },
+                  (error, amount) => {
+                    if (error) {
+                      reject(error)
+                    }
+                    resolve(amount)
+                  }
+                )
               )
-            )
-            if (order && ordersAdded[orderData] === undefined) {
-              orders.push({ ...order, amount })
-              ordersAdded[orderData] = orders.length - 1
+              if (order && ordersAdded[orderData] === undefined) {
+                orders.push({ ...order, amount })
+                ordersAdded[orderData] = orders.length - 1
+              }
+            } catch (e) {
+              console.warn(`Error decoding order: ${orderData}`)
             }
           }
         }
@@ -437,17 +441,21 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
           const bytesBoilerplate = 66
           if (`0x${owner.substr(26, bytesBoilerplate).toLowerCase()}` === account.toLowerCase()) {
             const orderData = `0x${data.substr(-ORDER_BYTES_LENGTH)}`
-            const order = await decodeOrder(uniswapEXContract, orderData)
-            const amount = await uniswapEXContract.ethDeposits(key)
-            if (order && !ordersAdded[orderData]) {
-              orders.push({ ...order, amount })
-              ordersAdded[orderData] = true
+            try {
+              const order = await decodeOrder(uniswapEXContract, orderData)
+              const amount = await uniswapEXContract.ethDeposits(key)
+              if (order && !ordersAdded[orderData]) {
+                orders.push({ ...order, amount })
+                ordersAdded[orderData] = true
+              }
+            } catch (e) {
+              console.warn(`Error decoding order: ${orderData}`)
             }
           }
         }
       }
     } catch (e) {
-      console.log(`Error when fetching open orders: ${e.message}`)
+      console.warn(`Error when fetching open orders: ${e.message}`)
     }
   }
   isFetchingOrders = false
