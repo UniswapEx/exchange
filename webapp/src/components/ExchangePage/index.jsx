@@ -64,6 +64,7 @@ const DEPOSIT_ORDER_EVENT_TOPIC0 = '0x294738b98bcebacf616fd72532d3d8d8d229807bf0
 
 // Order fee
 const ORDER_FEE = '6000000000000000' // 0,006 ETH
+const ORDER_MIN_FEE = 300000 * 1e9 // Fee with 1 GWEI
 
 const DownArrowBackground = styled.div`
   ${({ theme }) => theme.flexRowNoWrap}
@@ -1048,11 +1049,11 @@ export default function ExchangePage({ initialCurrency }) {
       />
       <Flex>
         <Button
-          disabled={!account || !isValid || customSlippageError === 'invalid' || !enoughAmountToCoverFees}
+          disabled={!fee || !account || !isValid || customSlippageError === 'invalid' || !enoughAmountToCoverFees}
           onClick={onPlace}
-          warning={highSlippageWarning || customSlippageError === 'warning' || !enoughAmountToCoverFees}
+          warning={fee < ORDER_MIN_FEE || highSlippageWarning || customSlippageError === 'warning' || !enoughAmountToCoverFees}
         >
-          {customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
+          {(fee < ORDER_MIN_FEE || customSlippageError === 'warning') ? t('placeAnyway') : t('place')}
         </Button>
       </Flex>
       {!account && <div className="fee-error">{t('noWallet')} </div>}
