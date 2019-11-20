@@ -35,6 +35,12 @@ const INITIAL_TOKENS_CONTEXT = {
       [DECIMALS]: 8,
       [EXCHANGE_ADDRESS]: '0x701564Aa6E26816147D4fa211a0779F1B774Bb9B'
     },
+    '0x737F98AC8cA59f2C68aD658E3C3d8C8963E40a4c': {
+      [NAME]: 'Amon',
+      [SYMBOL]: 'AMN',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0xE6C198d27a5B71144B40cFa2362ae3166728e0C8'
+    },
     '0xD46bA6D942050d489DBd938a2C909A5d5039A161': {
       [NAME]: 'Ampleforth',
       [SYMBOL]: 'AMPL',
@@ -84,8 +90,8 @@ const INITIAL_TOKENS_CONTEXT = {
       [EXCHANGE_ADDRESS]: '0x1C6c712b1F4a7c263B1DBd8F97fb447c945d3b9a'
     },
     '0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359': {
-      [NAME]: 'Dai Stablecoin v1.0',
-      [SYMBOL]: 'DAI',
+      [NAME]: 'Dai Stablecoin v1.0 (SAI)',
+      [SYMBOL]: 'SAI',
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0x09cabEC1eAd1c0Ba254B09efb3EE13841712bE14'
     },
@@ -112,6 +118,12 @@ const INITIAL_TOKENS_CONTEXT = {
       [SYMBOL]: 'DIP',
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0x61792F290e5100FBBcBb2309F03A1Bab869fb850'
+    },
+    '0xF629cBd94d3791C9250152BD8dfBDF380E2a3B9c': {
+      [NAME]: 'Enjin Coin',
+      [SYMBOL]: 'ENJ',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0xb99A23b1a4585fc56d0EC3B76528C27cAd427473'
     },
     '0x4946Fcea7C692606e8908002e55A582af44AC121': {
       [NAME]: 'FOAM Token',
@@ -143,6 +155,18 @@ const INITIAL_TOKENS_CONTEXT = {
       [DECIMALS]: 12,
       [EXCHANGE_ADDRESS]: '0x4B17685b330307C751B47f33890c8398dF4Fe407'
     },
+    '0x14094949152EDDBFcd073717200DA82fEd8dC960': {
+      [NAME]: 'bZx DAI iToken ',
+      [SYMBOL]: 'iDAI',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0x81eeD7F1EcbD7FA9978fcc7584296Fb0C215Dc5C'
+    },
+    '0x6fB3e0A217407EFFf7Ca062D46c26E5d60a14d69': {
+      [NAME]: 'IoTeX Network',
+      [SYMBOL]: 'IOTX',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0x084f002671a5f03D5498B1e5fb15fc0cfee9a470'
+    },
     '0x818Fc6C2Ec5986bc6E2CBf00939d90556aB12ce5': {
       [NAME]: 'Kin',
       [SYMBOL]: 'KIN',
@@ -161,23 +185,23 @@ const INITIAL_TOKENS_CONTEXT = {
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0xF173214C720f58E03e194085B1DB28B50aCDeeaD'
     },
-    '0xBBbbCA6A901c926F240b89EacB641d8Aec7AEafD': {
-      [NAME]: 'LoopringCoin V2',
-      [SYMBOL]: 'LRC',
-      [DECIMALS]: 18,
-      [EXCHANGE_ADDRESS]: '0xA539BAaa3aCA455c986bB1E25301CEF936CE1B65'
-    },
     '0x6c6EE5e31d828De241282B9606C8e98Ea48526E2': {
       [NAME]: 'HoloToken',
       [SYMBOL]: 'HOT',
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0xd4777E164c6C683E10593E08760B803D58529a8E'
     },
-    '0xD29F0b5b3F50b07Fe9a9511F7d86F4f4bAc3f8c4': {
-      [NAME]: 'Liquidity.Network Token',
-      [SYMBOL]: 'LQD',
+    '0xBBbbCA6A901c926F240b89EacB641d8Aec7AEafD': {
+      [NAME]: 'LoopringCoin V2',
+      [SYMBOL]: 'LRC',
       [DECIMALS]: 18,
-      [EXCHANGE_ADDRESS]: '0xe3406e7D0155E0a83236eC25D34Cd3D903036669'
+      [EXCHANGE_ADDRESS]: '0xA539BAaa3aCA455c986bB1E25301CEF936CE1B65'
+    },
+    '0x80fB784B7eD66730e8b1DBd9820aFD29931aab03': {
+      [NAME]: 'EthLend Token',
+      [SYMBOL]: 'LEND',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0xcaA7e4656f6A2B59f5f99c745F91AB26D1210DCe'
     },
     '0xA4e8C3Ec456107eA67d3075bF9e3DF3A75823DB0': {
       [NAME]: 'LoomToken',
@@ -191,6 +215,12 @@ const INITIAL_TOKENS_CONTEXT = {
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0xc4a1C45D5546029Fd57128483aE65b56124BFA6A'
     },
+    '0xD29F0b5b3F50b07Fe9a9511F7d86F4f4bAc3f8c4': {
+      [NAME]: 'Liquidity.Network Token',
+      [SYMBOL]: 'LQD',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0xe3406e7D0155E0a83236eC25D34Cd3D903036669'
+    },
     '0x0F5D2fB29fb7d3CFeE444a200298f468908cC942': {
       [NAME]: 'Decentraland MANA',
       [SYMBOL]: 'MANA',
@@ -202,6 +232,12 @@ const INITIAL_TOKENS_CONTEXT = {
       [SYMBOL]: 'MATIC',
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0x9a7A75E66B325a3BD46973B2b57c9b8d9D26a621'
+    },
+    '0x8888889213DD4dA823EbDD1e235b09590633C150': {
+      [NAME]: 'Marblecoin',
+      [SYMBOL]: 'MBC',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0xE1b7AeC3639068b474bFbcB916580fc28A20717B'
     },
     '0x80f222a749a2e18Eb7f676D371F19ad7EFEEe3b7': {
       [NAME]: 'Magnolia Token',
@@ -269,6 +305,12 @@ const INITIAL_TOKENS_CONTEXT = {
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0x755899F0540c3548b99E68C59AdB0f15d2695188'
     },
+    '0x99ea4dB9EE77ACD40B119BD1dC4E33e1C070b80d': {
+      [NAME]: 'Quantstamp Token',
+      [SYMBOL]: 'QSP',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0x82Db9FC4956Fa40efe1e35d881004612B5CB2cc2'
+    },
     '0xF970b8E36e23F7fC3FD752EeA86f8Be8D83375A6': {
       [NAME]: 'Ripio Credit Network Token',
       [SYMBOL]: 'RCN',
@@ -299,6 +341,12 @@ const INITIAL_TOKENS_CONTEXT = {
       [DECIMALS]: 8,
       [EXCHANGE_ADDRESS]: '0x394e524b47A3AB3D3327f7fF6629dC378c1494a3'
     },
+    '0x9469D013805bFfB7D3DEBe5E7839237e535ec483': {
+      [NAME]: 'Darwinia Network Native Token',
+      [SYMBOL]: 'RING',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0xeBD8AA50b26bFa63007d61eBa777A9DdE7e43c64'
+    },
     '0x607F4C5BB672230e8672085532f7e901544a7375': {
       [NAME]: 'iEx.ec Network Token',
       [SYMBOL]: 'RLC',
@@ -317,11 +365,23 @@ const INITIAL_TOKENS_CONTEXT = {
       [DECIMALS]: 8,
       [EXCHANGE_ADDRESS]: '0xC0C59cDe851bfcbdddD3377EC10ea54A18Efb937'
     },
+    '0x7C5A0CE9267ED19B22F8cae653F198e3E8daf098': {
+      [NAME]: 'SANtiment network token',
+      [SYMBOL]: 'SAN',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0x8a8D7aD4b89D91983cd069C58C4AA9F2f4166298'
+    },
     '0x5e74C9036fb86BD7eCdcb084a0673EFc32eA31cb': {
       [NAME]: 'Synth sETH',
       [SYMBOL]: 'sETH',
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0xe9Cf7887b93150D4F2Da7dFc6D502B216438F244'
+    },
+    '0x3A9FfF453d50D4Ac52A6890647b823379ba36B9E': {
+      [NAME]: 'Shuffle.Monster V3',
+      [SYMBOL]: 'SHUF',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0x536956Fab86774fb55CfaAcF496BC25E4d2B435C'
     },
     '0x744d70FDBE2Ba4CF95131626614a1763DF805B9E': {
       [NAME]: 'Status Network Token',
@@ -334,6 +394,12 @@ const INITIAL_TOKENS_CONTEXT = {
       [SYMBOL]: 'SNX',
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0x3958B4eC427F8fa24eB60F42821760e88d485f7F'
+    },
+    '0x23B608675a2B2fB1890d3ABBd85c5775c51691d5': {
+      [NAME]: 'Unisocks Edition 0',
+      [SYMBOL]: 'SOCKS',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0x22d8432cc7aA4f8712a655fC4cdfB1baEC29FCA9'
     },
     '0x42d6622deCe394b54999Fbd73D108123806f6a18': {
       [NAME]: 'SPANK',
@@ -391,7 +457,7 @@ const INITIAL_TOKENS_CONTEXT = {
     },
     '0x09cabEC1eAd1c0Ba254B09efb3EE13841712bE14': {
       [NAME]: 'Uniswap V1',
-      [SYMBOL]: 'UNI-V1:DAI',
+      [SYMBOL]: 'UNI-V1:SAI',
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0x601c32E0580D3aef9437dB52D09f5a5D7E60eC22'
     },
@@ -437,11 +503,19 @@ const INITIAL_TOKENS_CONTEXT = {
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0xaE76c84C9262Cdb9abc0C2c8888e62Db8E22A0bF'
     },
-    '0x3A9FfF453d50D4Ac52A6890647b823379ba36B9E': {
-      [NAME]: 'Shuffle.Monster V3',
-      [SYMBOL]: 'SHUF',
+    '0x6B175474E89094C44Da98b954EedeAC495271d0F': {
+      [NAME]: 'Dai Stablecoin',
+      [SYMBOL]: 'DAI',
       [DECIMALS]: 18,
-      [EXCHANGE_ADDRESS]: '0x536956Fab86774fb55CfaAcF496BC25E4d2B435C'
+      [EXCHANGE_ADDRESS]: '0x2a1530C4C41db0B0b2bB646CB5Eb1A67b7158667'
+    }
+  },
+  4: {
+    '0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa': {
+      [NAME]: 'Dai',
+      [SYMBOL]: 'DAI',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0xaF51BaAA766b65E8B3Ee0C2c33186325ED01eBD5'
     }
   }
 }
@@ -537,15 +611,15 @@ export function useAllTokenDetails(requireExchange = true) {
 
   return requireExchange
     ? Object.keys(tokenDetails)
-        .filter(
-          tokenAddress =>
-            tokenAddress === 'ETH' ||
-            (safeAccess(tokenDetails, [tokenAddress, EXCHANGE_ADDRESS]) &&
-              safeAccess(tokenDetails, [tokenAddress, EXCHANGE_ADDRESS]) !== ethers.constants.AddressZero)
-        )
-        .reduce((accumulator, tokenAddress) => {
-          accumulator[tokenAddress] = tokenDetails[tokenAddress]
-          return accumulator
-        }, {})
+      .filter(
+        tokenAddress =>
+          tokenAddress === 'ETH' ||
+          (safeAccess(tokenDetails, [tokenAddress, EXCHANGE_ADDRESS]) &&
+            safeAccess(tokenDetails, [tokenAddress, EXCHANGE_ADDRESS]) !== ethers.constants.AddressZero)
+      )
+      .reduce((accumulator, tokenAddress) => {
+        accumulator[tokenAddress] = tokenDetails[tokenAddress]
+        return accumulator
+      }, {})
     : tokenDetails
 }
