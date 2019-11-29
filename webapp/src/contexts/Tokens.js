@@ -467,6 +467,12 @@ const INITIAL_TOKENS_CONTEXT = {
       [DECIMALS]: 6,
       [EXCHANGE_ADDRESS]: '0x97deC872013f6B5fB443861090ad931542878126'
     },
+    '0x0f7f961648ae6db43c75663ac7e5414eb79b5704': {
+      [NAME]: 'XIO Network',
+      [SYMBOL]: 'XIO',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0x7b6e5278a14d5318571d65aced036d09c998c707'
+    },
     '0x8f3470A7388c05eE4e7AF3d01D8C722b0FF52374': {
       [NAME]: 'Veritaseum',
       [SYMBOL]: 'VERI',
@@ -611,15 +617,15 @@ export function useAllTokenDetails(requireExchange = true) {
 
   return requireExchange
     ? Object.keys(tokenDetails)
-      .filter(
-        tokenAddress =>
-          tokenAddress === 'ETH' ||
-          (safeAccess(tokenDetails, [tokenAddress, EXCHANGE_ADDRESS]) &&
-            safeAccess(tokenDetails, [tokenAddress, EXCHANGE_ADDRESS]) !== ethers.constants.AddressZero)
-      )
-      .reduce((accumulator, tokenAddress) => {
-        accumulator[tokenAddress] = tokenDetails[tokenAddress]
-        return accumulator
-      }, {})
+        .filter(
+          tokenAddress =>
+            tokenAddress === 'ETH' ||
+            (safeAccess(tokenDetails, [tokenAddress, EXCHANGE_ADDRESS]) &&
+              safeAccess(tokenDetails, [tokenAddress, EXCHANGE_ADDRESS]) !== ethers.constants.AddressZero)
+        )
+        .reduce((accumulator, tokenAddress) => {
+          accumulator[tokenAddress] = tokenDetails[tokenAddress]
+          return accumulator
+        }, {})
     : tokenDetails
 }
