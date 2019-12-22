@@ -55,7 +55,7 @@ contract UniswapEX {
         uniswapFactory = _uniswapFactory;
     }
 
-    function() external payable { }
+    function() external payable {require(msg.sender != tx.origin);}
 
     function depositEth(
         bytes calldata _data
