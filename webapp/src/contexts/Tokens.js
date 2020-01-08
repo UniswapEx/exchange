@@ -568,6 +568,12 @@ const INITIAL_TOKENS_CONTEXT = {
       [SYMBOL]: 'ZRX',
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0xaE76c84C9262Cdb9abc0C2c8888e62Db8E22A0bF'
+    },
+    '0xCf8f9555D55CE45a3A33a81D6eF99a2a2E71Dee2': {
+      [NAME]: 'CBI Index 7',
+      [SYMBOL]: 'CBIX7',
+      [DECIMALS]: 18,
+      [EXCHANGE_ADDRESS]: '0x93a8515d674c3d3235beea0de7ae3099aa34b1a5'
     }
   },
   4: {
