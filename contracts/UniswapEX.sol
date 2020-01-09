@@ -400,7 +400,7 @@ contract UniswapEX {
         UniswapExchange uniswap = _uniswapFactory.getExchange(address(_token));
         require(address(uniswap) != address(0), "The exchange should exist");
 
-        // Check if previous allowance is enought and approve Uniswap if not
+        // Check if previous allowance is enough and approve Uniswap if not
         uint256 prevAllowance = _token.allowance(address(this), address(uniswap));
         if (prevAllowance < _amount) {
             if (prevAllowance != 0) {
