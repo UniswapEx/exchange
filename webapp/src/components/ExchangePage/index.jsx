@@ -369,7 +369,96 @@ function getMarketRate(
   }
 }
 
+function keyOfOrder(order) {
+  const bytes = ethers.utils.defaultAbiCoder.encode(
+    [
+      'address',
+      'address',
+      'uint256',
+      'uint256',
+      'address',
+      'address'
+    ],
+    [
+      order.fromToken,
+      order.toToken,
+      order.minReturn,
+      order.fee,
+      order.owner,
+      order.witness
+    ]
+  )
+  return ethers.utils.keccak256(bytes)
+}
+
+async function amountOfOrder(order, uniswapEXContract) {
+  if (order.fromToken === ETH_ADDRESS) {
+    return uniswapEXContract.ethDeposits(keyOfOrder(order))
+  } else {
+    const vault = await uniswapEXContract.vaultOfOrder(
+      order.fromToken,
+      order.toToken,
+      order.minReturn,
+      order.fee,
+      order.owner,
+      order.witness
+    )
+    return ethers.utils.bigNumberify(await new Promise((resolve, reject) =>
+      window.web3.eth.call(
+        {
+          to: order.fromToken,
+          data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
+        },
+        (error, amount) => {
+          if (error) {
+            reject(error)
+          }
+          resolve(amount)
+        }
+      )
+    ))
+  }
+}
+
 async function fetchUserOrders(account, uniswapEXContract, setInputError) {
+  return Promise.all[
+    fetchUserOrdersApi(account, uniswapEXContract, setInputError),
+    fetchUserOrdersEtherscan(account, uniswapEXContract, setInputError)
+  ]
+}
+
+async function fetchUserOrdersApi(account, uniswapEXContract, setInputError) {
+  // @TODO: move this to "useFetchUserOrders"
+  hasFetchedOrders = true
+  if (account) {
+    try {
+      const [requestOrders] = await Promise.all([
+        fetch(
+          `https://uniex-api.defswap.io/addr/${account}`
+        ),
+      ])
+      const fetchedOrders = await requestOrders.json()
+      for (const order of fetchedOrders) {
+        // Get balance of the order
+        order.fee = ethers.utils.bigNumberify(order.fee.toString())
+        order.minReturn = ethers.utils.bigNumberify(order.minReturn.toString())
+
+        const amount = await amountOfOrder(order, uniswapEXContract)
+        if (!amount.isZero() && ordersAdded[order.tx] === undefined) {
+          orders.push({ ...order, amount })
+          ordersAdded[order.tx] = orders.length - 1
+        }
+      }
+    } catch (e) {
+      console.warn(`Error when fetching open api orders: ${e.message}`)
+    }
+  }
+  isFetchingOrders = false
+  setInputError(null) // Hack to update the component state, should be removed
+  setTimeout(() => fetchUserOrders(account, uniswapEXContract, setInputError), 30000)
+}
+
+async function fetchUserOrdersEtherscan(account, uniswapEXContract, setInputError) {
   // @TODO: move this to "useFetchUserOrders"
   hasFetchedOrders = true
   if (account) {
@@ -424,9 +513,10 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
                   }
                 )
               )
-              if (order && ordersAdded[orderData] === undefined) {
+              const key = keyOfOrder(order)
+              if (order && ordersAdded[key] === undefined) {
                 orders.push({ ...order, amount })
-                ordersAdded[orderData] = orders.length - 1
+                ordersAdded[key] = orders.length - 1
               }
             } catch (e) {
               console.warn(`Error decoding order: ${orderData}`)
@@ -448,9 +538,9 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
             try {
               const order = await decodeOrder(uniswapEXContract, orderData)
               const amount = await uniswapEXContract.ethDeposits(key)
-              if (order && !ordersAdded[orderData]) {
+              if (order && !ordersAdded[key]) {
                 orders.push({ ...order, amount })
-                ordersAdded[orderData] = true
+                ordersAdded[key] = true
               }
             } catch (e) {
               console.warn(`Error decoding order: ${orderData}`)
@@ -459,7 +549,7 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
         }
       }
     } catch (e) {
-      console.warn(`Error when fetching open orders: ${e.message}`)
+      console.warn(`Error when fetching open etherscan orders: ${e.message}`)
     }
   }
   isFetchingOrders = false
