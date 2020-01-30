@@ -444,9 +444,10 @@ async function fetchUserOrdersApi(account, uniswapEXContract, setInputError) {
         order.minReturn = ethers.utils.bigNumberify(order.minReturn.toString())
 
         const amount = await amountOfOrder(order, uniswapEXContract)
-        if (!amount.isZero() && ordersAdded[order.tx] === undefined) {
+        const key = keyOfOrder(order)
+        if (!amount.isZero() && ordersAdded[key] === undefined) {
           orders.push({ ...order, amount })
-          ordersAdded[order.tx] = orders.length - 1
+          ordersAdded[key] = orders.length - 1
         }
       }
     } catch (e) {
