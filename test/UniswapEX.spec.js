@@ -368,6 +368,69 @@ contract('UniswapEx', function ([_, owner, user, anotherUser, hacker]) {
       await userToken2Snap.requireIncrease(bought)
     })
   })
+  describe('It should work with easter ehh', async function () {
+    it('should execute a trade', async function () {
+      const randsecret = web3.utils.randomHex(13).replace('0x', '');
+      const secret = `0x20756e697377617065782e696f2020d83ddc09${randsecret}`
+      const witness = toAddress(secret)
+
+      // Create order
+      const encodedOrder = await uniswapEx.encodeEthOrder(
+        ethAddress,        // ETH Address
+        token1.address,    // Buy TOKEN 1
+        new BN(300),       // Get at least 300 Tokens
+        new BN(10),        // Pay 10 WEI to sender
+        user,              // Owner of the order
+        secret,            // Witness secret
+        witness            // Witness public address
+      )
+
+      await uniswapEx.depositEth(
+        encodedOrder,
+        {
+          value: new BN(10000),
+          from: user
+        }
+      )
+
+      // Take balance snapshots
+      const exEtherSnap = await etherSnap(uniswapEx.address, 'Uniswap EX')
+      const executerEtherSnap = await etherSnap(anotherUser, 'executer')
+      const uniswapEtherSnap = await etherSnap(uniswapToken1.address, 'uniswap')
+      const userTokenSnap = await balanceSnap(token1, user, 'user')
+      const uniswapTokenSnap = await balanceSnap(
+        token1,
+        uniswapToken1.address,
+        'uniswap'
+      )
+
+      // Sign witnesses using the secret
+      const witnesses = sign(anotherUser, secret)
+
+      // Execute order
+      const tx = await uniswapEx.executeOrder(
+        ethAddress,     // Sell ETH
+        token1.address, // Buy TOKEN 1
+        new BN(300),    // Get at least 300 Tokens
+        new BN(10),     // Pay 10 WEI to sender
+        user,           // Owner of the order
+        witnesses,      // Witnesses of the secret
+        {
+          from: anotherUser,
+          gasPrice: 0
+        }
+      )
+
+      const bought = tx.logs[0].args._bought
+
+      // Validate balances
+      await exEtherSnap.requireDecrease(new BN(10000))
+      await executerEtherSnap.requireIncrease(new BN(10))
+      await uniswapEtherSnap.requireIncrease(new BN(9990))
+      await userTokenSnap.requireIncrease(bought)
+      await uniswapTokenSnap.requireDecrease(bought)
+    });
+  })
   describe('Get vault', function () {
     it('should return correct vault', async function () {
       const address = (await vaultFactory.getVault(fakeKey)).toLowerCase()

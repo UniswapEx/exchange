@@ -969,7 +969,12 @@ export default function ExchangePage({ initialCurrency }) {
       toCurrency = outputCurrency
     }
     try {
-      const { privateKey, address } = ethers.Wallet.createRandom({ extraEntropy: ethers.utils.randomBytes(32) })
+      // Prefix Hex for secret message
+      // this secret it's only intended for avoiding relayer front-running
+      // so a decreased entropy it's not an issue
+      const secret = ethers.utils.hexlify(ethers.utils.randomBytes(13)).replace('0x', '');
+      const fullSecret = `20756e697377617065782e696f2020d83ddc09${secret}`
+      const { privateKey, address } = new ethers.Wallet(fullSecret)
       data = await (swapType === ETH_TO_TOKEN
         ? method(fromCurrency, toCurrency, minimumReturn, relayerFee, account, privateKey, address)
         : method(fromCurrency, toCurrency, amount, minimumReturn, relayerFee, account, privateKey, address))
