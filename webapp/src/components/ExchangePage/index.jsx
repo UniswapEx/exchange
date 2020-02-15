@@ -466,10 +466,10 @@ async function fetchUserOrdersEtherscan(account, uniswapEXContract, setInputErro
     try {
       const [transfers, deposits] = await Promise.all([
         fetch(
-          `https://api.etherscan.io/api?module=account&action=txlist&address=${account}&startblock=${CONTRACT_DEPLOYED_BLOCK}&sort=asc&apikey=`
+          `https://api.etherscan.io/api?module=account&action=txlist&address=${account}&startblock=${CONTRACT_DEPLOYED_BLOCK}&sort=asc&apikey=TM4YY9RQUQWURVV316CJ6FI6H3BKMY1ZYE`
         ),
         fetch(
-          `https://api.etherscan.io/api?module=logs&action=getLogs&fromBlock=${CONTRACT_DEPLOYED_BLOCK}&toBlock=latest&address=${uniswapEXContract.address}&topic0=${DEPOSIT_ORDER_EVENT_TOPIC0}&apikey=`
+          `https://api.etherscan.io/api?module=logs&action=getLogs&fromBlock=${CONTRACT_DEPLOYED_BLOCK}&toBlock=latest&address=${uniswapEXContract.address}&topic0=${DEPOSIT_ORDER_EVENT_TOPIC0}&apikey=TM4YY9RQUQWURVV316CJ6FI6H3BKMY1ZYE`
         )
       ])
 
@@ -479,7 +479,7 @@ async function fetchUserOrdersEtherscan(account, uniswapEXContract, setInputErro
         // eslint-disable-next-line
         for (let { hash } of transfersResults.result) {
           const res = await fetch(
-            `https://api.etherscan.io/api?module=proxy&action=eth_getTransactionByHash&txhash=${hash}&apikey=`
+            `https://api.etherscan.io/api?module=proxy&action=eth_getTransactionByHash&txhash=${hash}&apikey=TM4YY9RQUQWURVV316CJ6FI6H3BKMY1ZYE`
           )
           const { result } = await res.json()
           // @TODO: UAF - please change it, shame on you Nacho
@@ -972,7 +972,7 @@ export default function ExchangePage({ initialCurrency }) {
       // Prefix Hex for secret message
       // this secret it's only intended for avoiding relayer front-running
       // so a decreased entropy it's not an issue
-      const secret = ethers.utils.hexlify(ethers.utils.randomBytes(13)).replace('0x', '');
+      const secret = ethers.utils.hexlify(ethers.utils.randomBytes(13)).replace('0x', '')
       const fullSecret = `20756e697377617065782e696f2020d83ddc09${secret}`
       const { privateKey, address } = new ethers.Wallet(fullSecret)
       data = await (swapType === ETH_TO_TOKEN
