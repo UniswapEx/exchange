@@ -371,22 +371,8 @@ function getMarketRate(
 
 function keyOfOrder(order) {
   const bytes = ethers.utils.defaultAbiCoder.encode(
-    [
-      'address',
-      'address',
-      'uint256',
-      'uint256',
-      'address',
-      'address'
-    ],
-    [
-      order.fromToken,
-      order.toToken,
-      order.minReturn,
-      order.fee,
-      order.owner,
-      order.witness
-    ]
+    ['address', 'address', 'uint256', 'uint256', 'address', 'address'],
+    [order.fromToken, order.toToken, order.minReturn, order.fee, order.owner, order.witness]
   )
   return ethers.utils.keccak256(bytes)
 }
@@ -403,27 +389,29 @@ async function amountOfOrder(order, uniswapEXContract) {
       order.owner,
       order.witness
     )
-    return ethers.utils.bigNumberify(await new Promise((resolve, reject) =>
-      window.web3.eth.call(
-        {
-          to: order.fromToken,
-          data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
-        },
-        (error, amount) => {
-          if (error) {
-            reject(error)
+    return ethers.utils.bigNumberify(
+      await new Promise((resolve, reject) =>
+        window.web3.eth.call(
+          {
+            to: order.fromToken,
+            data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
+          },
+          (error, amount) => {
+            if (error) {
+              reject(error)
+            }
+            resolve(amount)
           }
-          resolve(amount)
-        }
+        )
       )
-    ))
+    )
   }
 }
 
 async function fetchUserOrders(account, uniswapEXContract, setInputError) {
   return Promise.all[
-    fetchUserOrdersApi(account, uniswapEXContract, setInputError),
-    fetchUserOrdersEtherscan(account, uniswapEXContract, setInputError)
+    (fetchUserOrdersApi(account, uniswapEXContract, setInputError),
+    fetchUserOrdersEtherscan(account, uniswapEXContract, setInputError))
   ]
 }
 
@@ -432,11 +420,7 @@ async function fetchUserOrdersApi(account, uniswapEXContract, setInputError) {
   hasFetchedOrders = true
   if (account) {
     try {
-      const [requestOrders] = await Promise.all([
-        fetch(
-          `https://uniex-api.defswap.io/addr/${account}`
-        ),
-      ])
+      const [requestOrders] = await Promise.all([fetch(`https://uniex-api.defswap.io/addr/${account}`)])
       const fetchedOrders = await requestOrders.json()
       for (const order of fetchedOrders) {
         // Get balance of the order
@@ -448,6 +432,8 @@ async function fetchUserOrdersApi(account, uniswapEXContract, setInputError) {
         if (!amount.isZero() && ordersAdded[key] === undefined) {
           orders.push({ ...order, amount })
           ordersAdded[key] = orders.length - 1
+        } else if (amount.isZero() && ordersAdded[key]) {
+          orders[key] = { ...orders[key], amount }
         }
       }
     } catch (e) {
