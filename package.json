@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/Agusx1211/uniswap-ex#readme",
   "dependencies": {
+    "@makerdao/multicall": "^0.10.0-rc.4",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.7.0",

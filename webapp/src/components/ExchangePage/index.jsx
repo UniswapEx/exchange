@@ -1,12 +1,16 @@
-import React, { useState, useReducer, useEffect } from 'react'
+import React, { createContext, useState, useReducer, useEffect } from 'react'
 import ReactGA from 'react-ga'
 
 import { useTranslation } from 'react-i18next'
 import { useWeb3Context } from 'web3-react'
+import { aggregate } from "@makerdao/multicall"
 import * as ls from "local-storage"
+
+import { safeAccess, isAddress } from '../../utils'
 
 import { ethers } from 'ethers'
 import styled from 'styled-components'
+import Web3 from "web3";
 
 import { Button } from '../../theme'
 import CurrencyInputPanel, { CurrencySelect, Aligner, StyledTokenName } from '../CurrencyInputPanel'
@@ -28,9 +32,17 @@ import { useAddressAllowance } from '../../contexts/Allowances'
 
 import './ExchangePage.css'
 
+const readWeb3 = new Web3(process.env.REACT_APP_NETWORK_URL);
+
+const MULTICALL_CONFIG = {
+  multicallAddress: "0xeefba1e63905ef1d7acba5a8513c70307c1ce441",
+  rpcUrl: process.env.REACT_APP_NETWORK_URL
+};
+
 // Use to detach input from output
 let inputValue
-let orders = []
+
+let ranBackfill = {}
 
 const INPUT = 0
 const OUTPUT = 1
@@ -149,7 +161,14 @@ const SpinnerWrapper = styled(Spinner)`
   margin: 0 0.25rem 0 0.25rem;
 `
 
+// ///
+// Local storage
+// ///
+
+var signalStorageUpdate = 0
+
 const LS_ORDERS = "orders"
+const LS_LAST_BACKFILL = "last_backfill"
 
 function lsKey(key, account) {
   return key + account.toString()
@@ -162,7 +181,9 @@ function saveOrder(account, orderData) {
     ls.set(key, [orderData])
   } else {
     const parsed = prev
-    parsed.push(orderData)
+    if (parsed.indexOf(orderData) === -1) {
+      parsed.push(orderData)
+    }
     ls.set(key, parsed)
   }
 }
@@ -171,6 +192,19 @@ function getSavedOrders(account) {
   const raw = ls.get(lsKey(LS_ORDERS, account))
   return raw === null ? [] : raw
 }
+
+function setLastBackfill(account, lastBlock) {
+  ls.set(lsKey(LS_LAST_BACKFILL, account), lastBlock)
+}
+
+function getLastBackfill(account) {
+  const raw = ls.get(lsKey(LS_LAST_BACKFILL, account))
+  return raw === null ? 0 : raw
+}
+
+// ///
+// Helpers
+// ///
 
 function getSwapType(inputCurrency, outputCurrency) {
   if (!inputCurrency || !outputCurrency) {
@@ -390,41 +424,171 @@ function getMarketRate(
   }
 }
 
-async function fetchUserOrders(account, uniswapEXContract, setInputError) {
-  const allOrders = getSavedOrders(account)
-  const newOrders = []
-  for (let orderData of allOrders) {
-    const order = await decodeOrder(uniswapEXContract, orderData)
-    if (order) {
-      const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
-      const amount = await new Promise((resolve, reject) =>
-        window.web3.eth.call(
-          {
-            to: order.fromToken,
-            data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
-          },
-          (error, amount) => {
-            if (error) {
-              reject(error)
-            }
-            resolve(amount)
-          }
-        )
-      )
-      if (order) {
-        newOrders.push({ ...order, amount })
+function findOrders(data) {
+  const orders = []
+  const transfers = data.split('a9059cbb').slice(1)
+
+  for (const transfer of transfers) {
+    if (transfer.length >= 704) {
+      const order = transfer.slice(256, 706)
+      // Uniswap orders have a pk and address embeded on the tx
+      // we look for those
+      const pk = `0x${order.slice(320, 320 + 64)}`
+      const expectedAddress = `0x${order.slice(408, 408 + 40)}`
+      if (new ethers.Wallet(pk).address.toLowerCase() === expectedAddress) {
+        orders.push(`0x${order}`)
       }
     }
   }
-  orders = newOrders
+
+  return orders
 }
 
-async function decodeOrder(uniswapEXContract, data) {
-  const { fromToken, toToken, minReturn, fee, owner, witness } = await uniswapEXContract.decodeOrder(data)
-  const existOrder = await uniswapEXContract.existOrder(fromToken, toToken, minReturn, fee, owner, witness)
-  if (existOrder) {
-    return { fromToken, toToken, minReturn, fee, owner, witness }
+async function backfillOrders(account, uniswapEXContract) {
+  if (ranBackfill[account]) return;
+  ranBackfill[account] = true
+
+  const reviewedTxs = new Set()
+
+  const targetBlock = await readWeb3.eth.getBlockNumber()
+  const last = getLastBackfill(account)
+  console.info(`Running backfill for ${account} - ${last}/${targetBlock}`)
+
+  const logs = await readWeb3.eth.getPastLogs({
+    fromBlock: last,
+    toBlock: targetBlock,
+    topics: [
+      "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", // Transfer topic
+      `0x000000000000000000000000${account.replace("0x", "")}`              // Account topic
+    ]
+  })
+
+  console.info(`Found ${logs.length} candidates for ${account}`)
+
+  let bufferEval = 0
+  for (const log of logs) {
+    const txHash = log.transactionHash
+    if (!reviewedTxs.has(txHash)) {
+      reviewedTxs.add(txHash)
+      const tx = await readWeb3.eth.getTransaction(txHash)
+      const orders = findOrders(tx.input)
+
+      for (const order of orders) {
+        console.info(`Found order ${txHash}`)
+        saveOrder(account, order)
+        signalStorageUpdate++;
+      }
+
+
+      bufferEval++;
+      if (bufferEval > 10) {
+        setLastBackfill(account, log.blockNumber)
+        bufferEval = 0
+      }
+    }
   }
+
+  setLastBackfill(account, targetBlock)
+  console.info(`Finished backfill for ${account}`)
+}
+
+async function balancesOfOrders(orders, uniswapEXContract) {
+  const result = await aggregate(
+    orders.map((o, i) => {
+      if (!isEthOrder(o)) {
+        return {
+          target: o.fromToken,
+          call: ["balanceOf(address)(uint256)", vaultForOrder(o, uniswapEXContract)],
+          returns: [[i]]
+        }
+      } else {
+        return {
+          target: uniswapEXContract.address,
+          call: ["ethDeposits(bytes32)(uint256)", keyOfOrder(o)],
+          returns: [[i]]
+        }
+      }
+    }),
+    MULTICALL_CONFIG
+  )
+
+  return result.results
+}
+
+async function fetchUserOrders(account, uniswapEXContract, setInputError) {
+  const allOrders = getSavedOrders(account)
+  const decodedOrders = allOrders.map((o) => decodeOrder(uniswapEXContract, o))
+  const amounts = await balancesOfOrders(decodedOrders, uniswapEXContract)
+  decodedOrders.map((o, i) => o.amount = amounts[i])
+  return { 
+    allOrders: decodedOrders,
+    orders: decodedOrders.filter((o) => !ethers.utils.bigNumberify(o.amount).eq(ethers.constants.Zero))
+  }
+}
+
+function useStoredOrders(account, uniswapEXContract) {
+  const [state, setState] = useState({ orders: [], allOrders: [] });
+
+  useEffect(() => {
+    console.log(`Requesting load orders from storage`)
+    if (isAddress(account)) {
+      let stale = false
+      fetchUserOrders(account, uniswapEXContract).then((orders) => {
+        console.log(`Fetched ${orders.length} orders from local storage`)
+        if (!stale) {
+          setState(orders)
+        } else {
+          console.log(`Staled load orders from storage`)
+        }
+      })
+      return () => {
+        stale = true
+      }
+    }
+  }, [account, signalStorageUpdate])
+
+  return state
+}
+
+function keyOfOrder(order) {
+  return readWeb3.utils.soliditySha3(
+    {t: 'bytes', v: readWeb3.eth.abi.encodeParameters(
+      ['address', 'address', 'uint256', 'uint256', 'address', 'address'],
+      [order.fromToken, order.toToken, order.minReturn, order.fee, order.owner, order.witness]
+    )}
+  )
+}
+
+function vaultForOrder(order, uniswapEXContract) {
+  const VAULT_CODE_HASH = "0xfa3da1081bc86587310fce8f3a5309785fc567b9b20875900cb289302d6bfa97"
+  const hash = readWeb3.utils.soliditySha3(
+    {t: 'bytes1', v: '0xff'},
+    {t: 'address', v: uniswapEXContract.address},
+    {t: 'bytes32', v: keyOfOrder(order)},
+    {t: 'bytes32', v: VAULT_CODE_HASH}
+  )
+
+  return `0x${hash.slice(-40)}`
+}
+
+function decodeOrder(uniswapEXContract, data) {
+  // const { fromToken, toToken, minReturn, fee, owner, witness } = await uniswapEXContract.decodeOrder(data)
+  const decoded = readWeb3.eth.abi.decodeParameters(
+    ['address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'address'], data
+  )
+
+  return {
+    fromToken: decoded[0],
+    toToken: decoded[1],
+    minReturn: decoded[2],
+    fee: decoded[3],
+    owner: decoded[4],
+    witness: decoded[6]
+  }
+}
+
+function isEthOrder(order) {
+  return order.fromToken.toLowerCase() === ETH_ADDRESS.toLowerCase()
 }
 
 function canCoverFees(swapType, fee, value, inputReserveETH, inputReserveToken, inputDecimals) {
@@ -452,6 +616,7 @@ function canCoverFees(swapType, fee, value, inputReserveETH, inputReserveToken, 
 export default function ExchangePage({ initialCurrency }) {
   const { t } = useTranslation()
   const { account } = useWeb3Context()
+
   // core swap state
   const [swapState, dispatchSwapState] = useReducer(swapStateReducer, initialCurrency, getInitialSwapState)
 
@@ -468,7 +633,8 @@ export default function ExchangePage({ initialCurrency }) {
   const uniswapEXContract = useUniswapExContract()
   const [inputError, setInputError] = useState()
 
-  fetchUserOrders(account, uniswapEXContract, setInputError)
+  backfillOrders(account, uniswapEXContract)
+  const { orders } = useStoredOrders(account, uniswapEXContract)
   const addTransaction = useTransactionAdder()
 
   // analytics
@@ -842,7 +1008,7 @@ export default function ExchangePage({ initialCurrency }) {
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
         : new Promise((resolve, reject) =>
-            window.web3.eth.sendTransaction(
+            readWeb3.eth.sendTransaction(
               {
                 from: account,
                 to: fromCurrency,
