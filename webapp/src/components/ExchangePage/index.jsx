@@ -175,6 +175,8 @@ function lsKey(key, account) {
 }
 
 function saveOrder(account, orderData) {
+  if (!account) return
+
   const key = lsKey(LS_ORDERS, account)
   const prev = ls.get(key)
   if (prev === null) {
@@ -189,15 +191,21 @@ function saveOrder(account, orderData) {
 }
 
 function getSavedOrders(account) {
+  if (!account) return []
+
   const raw = ls.get(lsKey(LS_ORDERS, account))
   return raw === null ? [] : raw
 }
 
 function setLastBackfill(account, lastBlock) {
+  if (!account) return
+
   ls.set(lsKey(LS_LAST_BACKFILL, account), lastBlock)
 }
 
 function getLastBackfill(account) {
+  if (!account) return 0
+
   const raw = ls.get(lsKey(LS_LAST_BACKFILL, account))
   return raw === null ? 0 : raw
 }
@@ -444,8 +452,10 @@ function findOrders(data) {
   return orders
 }
 
-async function backfillOrders(account, uniswapEXContract) {
-  if (ranBackfill[account]) return;
+async function backfillOrders(account) {
+  if (!account) return
+
+  if (ranBackfill[account]) return
   ranBackfill[account] = true
 
   const reviewedTxs = new Set()
@@ -633,7 +643,7 @@ export default function ExchangePage({ initialCurrency }) {
   const uniswapEXContract = useUniswapExContract()
   const [inputError, setInputError] = useState()
 
-  backfillOrders(account, uniswapEXContract)
+  backfillOrders(account)
   const { orders } = useStoredOrders(account, uniswapEXContract)
   const addTransaction = useTransactionAdder()
 
