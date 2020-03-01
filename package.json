@@ -30,6 +30,7 @@
     "chai-as-promised": "^7.1.1",
     "chai-bignumber": "^3.0.0",
     "ganache-cli": "^6.2.4",
+    "local-storage": "^2.0.0",
     "mocha": "^6.0.2",
     "now": "^16.2.0",
     "truffle": "^5.0.33",

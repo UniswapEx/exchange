@@ -3,6 +3,7 @@ import ReactGA from 'react-ga'
 
 import { useTranslation } from 'react-i18next'
 import { useWeb3Context } from 'web3-react'
+import * as ls from "local-storage"
 
 import { ethers } from 'ethers'
 import styled from 'styled-components'
@@ -29,10 +30,7 @@ import './ExchangePage.css'
 
 // Use to detach input from output
 let inputValue
-let isFetchingOrders = true
-let hasFetchedOrders
 let orders = []
-const ordersAdded = {}
 
 const INPUT = 0
 const OUTPUT = 1
@@ -150,6 +148,29 @@ const Order = styled.div`
 const SpinnerWrapper = styled(Spinner)`
   margin: 0 0.25rem 0 0.25rem;
 `
+
+const LS_ORDERS = "orders"
+
+function lsKey(key, account) {
+  return key + account.toString()
+}
+
+function saveOrder(account, orderData) {
+  const key = lsKey(LS_ORDERS, account)
+  const prev = ls.get(key)
+  if (prev === null) {
+    ls.set(key, [orderData])
+  } else {
+    const parsed = prev
+    parsed.push(orderData)
+    ls.set(key, parsed)
+  }
+}
+
+function getSavedOrders(account) {
+  const raw = ls.get(lsKey(LS_ORDERS, account))
+  return raw === null ? [] : raw
+}
 
 function getSwapType(inputCurrency, outputCurrency) {
   if (!inputCurrency || !outputCurrency) {
@@ -370,101 +391,32 @@ function getMarketRate(
 }
 
 async function fetchUserOrders(account, uniswapEXContract, setInputError) {
-  // @TODO: move this to "useFetchUserOrders"
-  hasFetchedOrders = true
-  if (account) {
-    try {
-      const [transfers, deposits] = await Promise.all([
-        fetch(
-          `https://api.etherscan.io/api?module=account&action=txlist&address=${account}&startblock=${CONTRACT_DEPLOYED_BLOCK}&sort=asc&apikey=TM4YY9RQUQWURVV316CJ6FI6H3BKMY1ZYE`
-        ),
-        fetch(
-          `https://api.etherscan.io/api?module=logs&action=getLogs&fromBlock=${CONTRACT_DEPLOYED_BLOCK}&toBlock=latest&address=${uniswapEXContract.address}&topic0=${DEPOSIT_ORDER_EVENT_TOPIC0}&apikey=TM4YY9RQUQWURVV316CJ6FI6H3BKMY1ZYE`
+  const allOrders = getSavedOrders(account)
+  const newOrders = []
+  for (let orderData of allOrders) {
+    const order = await decodeOrder(uniswapEXContract, orderData)
+    if (order) {
+      const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
+      const amount = await new Promise((resolve, reject) =>
+        window.web3.eth.call(
+          {
+            to: order.fromToken,
+            data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
+          },
+          (error, amount) => {
+            if (error) {
+              reject(error)
+            }
+            resolve(amount)
+          }
         )
-      ])
-
-      // Transfers
-      const transfersResults = await transfers.json()
-      if (transfersResults.message === 'OK') {
-        // eslint-disable-next-line
-        for (let { hash } of transfersResults.result) {
-          const res = await fetch(
-            `https://api.etherscan.io/api?module=proxy&action=eth_getTransactionByHash&txhash=${hash}&apikey=TM4YY9RQUQWURVV316CJ6FI6H3BKMY1ZYE`
-          )
-          const { result } = await res.json()
-          // @TODO: UAF - please change it, shame on you Nacho
-          // Check if the extra data is related to an order
-          const indexOfTransfer = result ? result.input.indexOf(TRANSFER_SELECTOR) : -1
-          if (indexOfTransfer !== -1 && result.input.length > ORDER_BYTES_LENGTH) {
-            const orderData = `0x${result.input.substr(
-              indexOfTransfer + TRANSFER_TX_LENGTH + TX_PADDED_BYTES_BOILERPLATE,
-              ORDER_BYTES_LENGTH
-            )}`
-            try {
-              const order = await decodeOrder(uniswapEXContract, orderData)
-              if (!order) {
-                if (ordersAdded[orderData] >= 0) {
-                  delete orders[ordersAdded[orderData]]
-                  delete ordersAdded[orderData]
-                }
-                continue
-              }
-              const vault = await uniswapEXContract.vaultOfOrder(...Object.values(order))
-              const amount = await new Promise((resolve, reject) =>
-                window.web3.eth.call(
-                  {
-                    to: order.fromToken,
-                    data: `${BALANCE_SELECTOR}000000000000000000000000${vault.replace('0x', '')}`
-                  },
-                  (error, amount) => {
-                    if (error) {
-                      reject(error)
-                    }
-                    resolve(amount)
-                  }
-                )
-              )
-              if (order && ordersAdded[orderData] === undefined) {
-                orders.push({ ...order, amount })
-                ordersAdded[orderData] = orders.length - 1
-              }
-            } catch (e) {
-              console.warn(`Error decoding order: ${orderData}`)
-            }
-          }
-        }
+      )
+      if (order) {
+        newOrders.push({ ...order, amount })
       }
-
-      // Deposit ETH orders
-      const depositsResults = await deposits.json()
-      if (depositsResults.message === 'OK') {
-        // eslint-disable-next-line
-        for (let { data, topics } of depositsResults.result) {
-          const [, key, owner] = topics
-          // Check the owner from a padded 32-bytes address
-          const bytesBoilerplate = 66
-          if (`0x${owner.substr(26, bytesBoilerplate).toLowerCase()}` === account.toLowerCase()) {
-            const orderData = `0x${data.substr(-ORDER_BYTES_LENGTH)}`
-            try {
-              const order = await decodeOrder(uniswapEXContract, orderData)
-              const amount = await uniswapEXContract.ethDeposits(key)
-              if (order && !ordersAdded[orderData]) {
-                orders.push({ ...order, amount })
-                ordersAdded[orderData] = true
-              }
-            } catch (e) {
-              console.warn(`Error decoding order: ${orderData}`)
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.warn(`Error when fetching open orders: ${e.message}`)
     }
   }
-  isFetchingOrders = false
-  setInputError(null) // Hack to update the component state, should be removed
-  setTimeout(() => fetchUserOrders(account, uniswapEXContract, setInputError), 30000)
+  orders = newOrders
 }
 
 async function decodeOrder(uniswapEXContract, data) {
@@ -516,9 +468,7 @@ export default function ExchangePage({ initialCurrency }) {
   const uniswapEXContract = useUniswapExContract()
   const [inputError, setInputError] = useState()
 
-  if (!hasFetchedOrders) {
-    fetchUserOrders(account, uniswapEXContract, setInputError)
-  }
+  fetchUserOrders(account, uniswapEXContract, setInputError)
   const addTransaction = useTransactionAdder()
 
   // analytics
@@ -886,7 +836,9 @@ export default function ExchangePage({ initialCurrency }) {
       const { privateKey, address } = new ethers.Wallet(fullSecret)
       data = await (swapType === ETH_TO_TOKEN
         ? method(fromCurrency, toCurrency, minimumReturn, relayerFee, account, privateKey, address)
-        : method(fromCurrency, toCurrency, amount, minimumReturn, relayerFee, account, privateKey, address))
+        : method(fromCurrency, toCurrency, amount, minimumReturn, relayerFee, account, privateKey, address)
+      )
+      saveOrder(account, swapType === ETH_TO_TOKEN ? data : `0x${data.slice(267)}`)
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
         : new Promise((resolve, reject) =>
@@ -924,7 +876,6 @@ export default function ExchangePage({ initialCurrency }) {
 
   const allBalances = useFetchAllBalances()
   const filteredOrders = orders.filter(Boolean) // Remove empty/cancelled orders
-
   return (
     <>
       <CurrencyInputPanel
@@ -1097,7 +1048,7 @@ export default function ExchangePage({ initialCurrency }) {
         <p className="orders-title">{`${t('Orders')} ${
           filteredOrders.length > 0 ? `(${filteredOrders.length})` : ''
         }`}</p>
-        {isFetchingOrders ? (
+        {false ? (
           <SpinnerWrapper src={Circle} alt="loader" />
         ) : filteredOrders.length === 0 ? (
           <p>{t('noOpenOrders')}</p>
