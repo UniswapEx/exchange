@@ -5,6 +5,7 @@
   "homepage": "https://uniswapex.io",
   "private": true,
   "dependencies": {
+    "@makerdao/multicall": "^0.10.0-rc.4",
     "@reach/dialog": "^0.2.8",
     "@reach/tooltip": "^0.2.0",
     "@uniswap/sdk": "^1.0.0-beta.4",
@@ -15,6 +16,7 @@
     "i18next-browser-languagedetector": "^3.0.1",
     "i18next-xhr-backend": "^2.0.1",
     "jazzicon": "^1.5.0",
+    "local-storage": "^2.0.0",
     "now": "^16.2.0",
     "polished": "^3.3.2",
     "react": "^16.8.6",
