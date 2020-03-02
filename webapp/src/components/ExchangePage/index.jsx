@@ -43,6 +43,7 @@ const MULTICALL_CONFIG = {
 let inputValue
 
 let ranBackfill = {}
+let ranEthBackfill = {}
 
 const INPUT = 0
 const OUTPUT = 1
@@ -167,8 +168,9 @@ const SpinnerWrapper = styled(Spinner)`
 
 var signalStorageUpdate = 0
 
-const LS_ORDERS = "orders"
-const LS_LAST_BACKFILL = "last_backfill"
+const LS_ORDERS = "orders_"
+const LS_LAST_BACKFILL = "last_backfill_"
+const LS_LAST_ETH_BACKFILL = "last_backfill_eth_"
 
 function lsKey(key, account) {
   return key + account.toString()
@@ -210,6 +212,19 @@ function getLastBackfill(account) {
   if (!account) return 0
 
   const raw = ls.get(lsKey(LS_LAST_BACKFILL, account))
+  return raw === null ? 0 : raw
+}
+
+function setLastEthBackfill(account, lastBlock) {
+  if (!account) return
+
+  ls.set(lsKey(LS_LAST_ETH_BACKFILL, account), lastBlock)
+}
+
+function getLastEthBackfill(account) {
+  if (!account) return 0
+
+  const raw = ls.get(lsKey(LS_LAST_ETH_BACKFILL, account))
   return raw === null ? 0 : raw
 }
 
@@ -505,6 +520,38 @@ async function backfillOrders(account) {
   console.info(`Finished backfill for ${account}`)
 }
 
+async function backfillEthOrders(account, uniswapEx) {
+  if (!account) return
+
+  if (ranEthBackfill[account]) return
+  ranEthBackfill[account] = true
+
+  const targetBlock = await readWeb3.eth.getBlockNumber()
+  const last = getLastEthBackfill(account)
+  console.info(`Running ETH backfill for ${account} - ${last}/${targetBlock}`)
+
+  const logs = await readWeb3.eth.getPastLogs({
+    fromBlock: last,
+    toBlock: targetBlock,
+    address: uniswapEx.address,
+    topics: [
+      "0x294738b98bcebacf616fd72532d3d8d8d229807bf03b68b25681bfbbdb3d3fe5", // Deposit topic
+      null,                                                                 // Any log
+      `0x000000000000000000000000${account.replace("0x", "")}`              // Account topic
+    ]
+  })
+
+  console.info(`Found ${logs.length} ETH orders for ${account}`)
+
+  for (const log of logs) {
+    const order = log.data.slice(194)
+    saveOrder(account, order)
+  }
+
+  setLastEthBackfill(account, targetBlock)
+  console.info(`Finished ETH backfill for ${account}`)
+}
+
 async function balancesOfOrders(orders, uniswapEXContract) {
   const result = await aggregate(
     orders.map((o, i) => {
@@ -648,18 +695,14 @@ export default function ExchangePage({ initialCurrency }) {
   const [inputError, setInputError] = useState()
 
   backfillOrders(account)
+  backfillEthOrders(account, uniswapEXContract)
+
   const pendingOrders = useAllPendingOrders()
   const pendingCancelOrders = useAllPendingCancelOrders()
   const allPending = pendingOrders.concat(pendingCancelOrders)
   const { allOrders, openOrders } = useStoredOrders(account, uniswapEXContract, allPending)
 
   const orders = openOrders.concat(allOrders.filter((o) => pendingOrders.indexOf(o.data) !== -1))
-  console.log('rawAll', allOrders)
-  console.log('open', openOrders)
-  console.log('pendingOrders', pendingOrders)
-  console.log('pendingCancel', pendingCancelOrders)
-  console.log('all', orders)
-
   const addTransaction = useTransactionAdder()
 
   // analytics
