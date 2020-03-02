@@ -229,6 +229,10 @@ export async function getTokenAllowance(address, tokenAddress, spenderAddress, l
 
 // amount must be a BigNumber, {base,display}Decimals must be Numbers
 export function amountFormatter(amount, baseDecimals = 18, displayDecimals = 3, useLessThan = true) {
+  if (displayDecimals > baseDecimals) {
+    return amountFormatter(amount, baseDecimals, baseDecimals, useLessThan)
+  }
+
   const zero = ethers.utils.bigNumberify(0)
   if (baseDecimals > 18 || displayDecimals > 18 || displayDecimals > baseDecimals) {
     throw Error(`Invalid combination of baseDecimals '${baseDecimals}' and displayDecimals '${displayDecimals}.`)
