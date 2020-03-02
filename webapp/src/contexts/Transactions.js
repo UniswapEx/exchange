@@ -211,12 +211,12 @@ export const ORDER_NOT_PENDING = -1
 // }
 
 
-export function useOrderPendingState(order) {
+export function useOrderPendingState(orderData) {
   const allTransactions = useAllTransactions()
 
   const last = Object.keys(allTransactions).find(hash =>
       allTransactions[hash][RESPONSE] &&
-      allTransactions[hash][RESPONSE][CUSTOM_DATA].order === order &&
+      allTransactions[hash][RESPONSE][CUSTOM_DATA].order === orderData &&
       !allTransactions[hash][RECEIPT]
   )
 

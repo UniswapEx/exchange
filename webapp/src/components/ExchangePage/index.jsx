@@ -1299,7 +1299,7 @@ function OrderCard(props) {
 
   const { symbol: fromSymbol, decimals: fromDecimals } = useTokenDetails(fromToken)
   const { symbol: toSymbol, decimals: toDecimals } = useTokenDetails(toToken)
-  const state = useOrderPendingState(order)
+  const state = useOrderPendingState(order.data)
 
   const canceling = state === ACTION_CANCEL_ORDER
   const pending = state === ACTION_PLACE_ORDER
