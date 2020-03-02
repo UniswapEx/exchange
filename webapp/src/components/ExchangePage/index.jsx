@@ -25,7 +25,7 @@ import { amountFormatter } from '../../utils'
 import { useUniswapExContract } from '../../hooks'
 import { Spinner } from '../../theme'
 import { useTokenDetails, useAllTokenDetails } from '../../contexts/Tokens'
-import { useTransactionAdder } from '../../contexts/Transactions'
+import { useTransactionAdder, ACTION_PLACE_ORDER, ACTION_CANCEL_ORDER, useAllPendingOrders, useAllPendingCancelOrders } from '../../contexts/Transactions'
 import { useAddressBalance, useExchangeReserves } from '../../contexts/Balances'
 import { useFetchAllBalances } from '../../contexts/AllBalances'
 import { useAddressAllowance } from '../../contexts/Allowances'
@@ -179,14 +179,17 @@ function saveOrder(account, orderData) {
 
   const key = lsKey(LS_ORDERS, account)
   const prev = ls.get(key)
+
+  signalStorageUpdate++
+
   if (prev === null) {
     ls.set(key, [orderData])
   } else {
     const parsed = prev
     if (parsed.indexOf(orderData) === -1) {
       parsed.push(orderData)
+      ls.set(key, parsed)
     }
-    ls.set(key, parsed)
   }
 }
 
@@ -444,7 +447,7 @@ function findOrders(data) {
       const pk = `0x${order.slice(320, 320 + 64)}`
       const expectedAddress = `0x${order.slice(408, 408 + 40)}`
       if (new ethers.Wallet(pk).address.toLowerCase() === expectedAddress) {
-        orders.push(`0x${order}`)
+        orders.push(`0x${order.slice(1)}`)
       }
     }
   }
@@ -532,12 +535,12 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
   decodedOrders.map((o, i) => o.amount = amounts[i])
   return { 
     allOrders: decodedOrders,
-    orders: decodedOrders.filter((o) => !ethers.utils.bigNumberify(o.amount).eq(ethers.constants.Zero))
+    openOrders: decodedOrders.filter((o) => !ethers.utils.bigNumberify(o.amount).eq(ethers.constants.Zero))
   }
 }
 
-function useStoredOrders(account, uniswapEXContract) {
-  const [state, setState] = useState({ orders: [], allOrders: [] });
+function useStoredOrders(account, uniswapEXContract, pendingTxs) {
+  const [state, setState] = useState({ openOrders: [], allOrders: [] });
 
   useEffect(() => {
     console.log(`Requesting load orders from storage`)
@@ -555,7 +558,7 @@ function useStoredOrders(account, uniswapEXContract) {
         stale = true
       }
     }
-  }, [account, signalStorageUpdate])
+  }, [account, signalStorageUpdate, pendingTxs.length])
 
   return state
 }
@@ -593,7 +596,8 @@ function decodeOrder(uniswapEXContract, data) {
     minReturn: decoded[2],
     fee: decoded[3],
     owner: decoded[4],
-    witness: decoded[6]
+    witness: decoded[6],
+    data: data
   }
 }
 
@@ -644,7 +648,18 @@ export default function ExchangePage({ initialCurrency }) {
   const [inputError, setInputError] = useState()
 
   backfillOrders(account)
-  const { orders } = useStoredOrders(account, uniswapEXContract)
+  const pendingOrders = useAllPendingOrders()
+  const pendingCancelOrders = useAllPendingCancelOrders()
+  const allPending = pendingOrders.concat(pendingCancelOrders)
+  const { allOrders, openOrders } = useStoredOrders(account, uniswapEXContract, allPending)
+
+  const orders = openOrders.concat(allOrders.filter((o) => pendingOrders.indexOf(o.data) !== -1))
+  console.log('rawAll', allOrders)
+  console.log('open', openOrders)
+  console.log('pendingOrders', pendingOrders)
+  console.log('pendingCancel', pendingCancelOrders)
+  console.log('all', orders)
+
   const addTransaction = useTransactionAdder()
 
   // analytics
@@ -1014,11 +1029,12 @@ export default function ExchangePage({ initialCurrency }) {
         ? method(fromCurrency, toCurrency, minimumReturn, relayerFee, account, privateKey, address)
         : method(fromCurrency, toCurrency, amount, minimumReturn, relayerFee, account, privateKey, address)
       )
-      saveOrder(account, swapType === ETH_TO_TOKEN ? data : `0x${data.slice(267)}`)
+      const order = swapType === ETH_TO_TOKEN ? data : `0x${data.slice(267)}`
+      saveOrder(account, order)
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
         : new Promise((resolve, reject) =>
-            readWeb3.eth.sendTransaction(
+            window.web3.eth.sendTransaction(
               {
                 from: account,
                 to: fromCurrency,
@@ -1034,17 +1050,19 @@ export default function ExchangePage({ initialCurrency }) {
           ))
 
       if (res.hash) {
-        addTransaction(res)
+        addTransaction(res, { action: ACTION_PLACE_ORDER, order: order })
       }
     } catch (e) {
       console.log(e.message)
     }
   }
 
-  async function onCancel(order) {
-    const { fromToken, toToken, minReturn, fee, owner, witness } = order
-    uniswapEXContract.cancelOrder(fromToken, toToken, minReturn, fee, owner, witness).then(response => {
-      addTransaction(response)
+  async function onCancel(order, pending) {
+    const { fromToken, toToken, minReturn, fee, owner, witness, data } = order
+    uniswapEXContract.cancelOrder(fromToken, toToken, minReturn, fee, owner, witness, {
+      gasLimit: pending ? 400000 : undefined
+    }).then(response => {
+      addTransaction(response, { action: ACTION_CANCEL_ORDER, order: data })
     })
   }
 
@@ -1262,7 +1280,11 @@ export default function ExchangePage({ initialCurrency }) {
                     </CurrencySelect>
                   </div>
                   <p>
-                    {`Amount: ${ethers.utils.formatUnits(order.amount, 18)}`} <TokenLogo address={fromToken} />
+                    {
+                      pendingOrders.indexOf(order.data) === -1 ?
+                      <>{`Amount: ${ethers.utils.formatUnits(order.amount, 18)}`} <TokenLogo address={fromToken} /></>
+                      : 'Pending ...'
+                    }
                   </p>
                   <p>
                     {`Min return: ${ethers.utils.formatUnits(order.minReturn, 18)}`} <TokenLogo address={toToken} />
@@ -1270,8 +1292,10 @@ export default function ExchangePage({ initialCurrency }) {
                   <p>
                     {`Fee: ${ethers.utils.formatUnits(order.fee, 18)}`} <TokenLogo address={'ETH'} />
                   </p>
-                  <Button className="cta" onClick={() => onCancel(order)}>
-                    {t('cancel')}
+                  <Button className="cta" disabled={pendingCancelOrders.indexOf(order.data) !== -1} onClick={
+                      () => onCancel(order, pendingOrders.indexOf(order.data) !== -1)
+                    }>
+                    {pendingCancelOrders.indexOf(order.data) === -1 ? t('cancel') : "Cancelling ..."}
                   </Button>
                 </Order>
               )

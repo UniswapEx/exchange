@@ -189,3 +189,32 @@ export function usePendingApproval(tokenAddress) {
     }).length >= 1
   )
 }
+
+export const ACTION_PLACE_ORDER = 0
+export const ACTION_CANCEL_ORDER = 1
+
+export function useAllPendingOrders() {
+  const allTransactions = useAllTransactions()
+  return Object.keys(allTransactions).filter((hash) => {
+    if (allTransactions[hash][RECEIPT]) {
+      return false
+    } else if (!allTransactions[hash][RESPONSE]) {
+      return false
+    } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_PLACE_ORDER) {
+      return true
+    }
+  }).map((hash) => allTransactions[hash][RESPONSE][CUSTOM_DATA].order)
+}
+
+export function useAllPendingCancelOrders() {
+  const allTransactions = useAllTransactions()
+  return Object.keys(allTransactions).filter((hash) => {
+    if (allTransactions[hash][RECEIPT]) {
+      return false
+    } else if (!allTransactions[hash][RESPONSE]) {
+      return false
+    } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_CANCEL_ORDER) {
+      return true
+    }
+  }).map((hash) => allTransactions[hash][RESPONSE][CUSTOM_DATA].order)
+}
