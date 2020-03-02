@@ -25,7 +25,7 @@ import { amountFormatter } from '../../utils'
 import { useUniswapExContract } from '../../hooks'
 import { Spinner } from '../../theme'
 import { useTokenDetails, useAllTokenDetails } from '../../contexts/Tokens'
-import { useTransactionAdder, ACTION_PLACE_ORDER, ACTION_CANCEL_ORDER, useAllPendingOrders, useAllPendingCancelOrders } from '../../contexts/Transactions'
+import { useTransactionAdder, ACTION_PLACE_ORDER, ACTION_CANCEL_ORDER, useAllPendingOrders, useAllPendingCancelOrders, useOrderPendingState } from '../../contexts/Transactions'
 import { useAddressBalance, useExchangeReserves } from '../../contexts/Balances'
 import { useFetchAllBalances } from '../../contexts/AllBalances'
 import { useAddressAllowance } from '../../contexts/Allowances'
@@ -1100,19 +1100,9 @@ export default function ExchangePage({ initialCurrency }) {
     }
   }
 
-  async function onCancel(order, pending) {
-    const { fromToken, toToken, minReturn, fee, owner, witness, data } = order
-    uniswapEXContract.cancelOrder(fromToken, toToken, minReturn, fee, owner, witness, {
-      gasLimit: pending ? 400000 : undefined
-    }).then(response => {
-      addTransaction(response, { action: ACTION_CANCEL_ORDER, order: data })
-    })
-  }
-
   const [customSlippageError] = useState('')
 
   const allBalances = useFetchAllBalances()
-  const filteredOrders = orders.filter(Boolean) // Remove empty/cancelled orders
   return (
     <>
       <CurrencyInputPanel
@@ -1283,69 +1273,86 @@ export default function ExchangePage({ initialCurrency }) {
       )}
       <div>
         <p className="orders-title">{`${t('Orders')} ${
-          filteredOrders.length > 0 ? `(${filteredOrders.length})` : ''
+          orders.length > 0 ? `(${orders.length})` : ''
         }`}</p>
         {false ? (
           <SpinnerWrapper src={Circle} alt="loader" />
-        ) : filteredOrders.length === 0 ? (
+        ) : orders.length === 0 ? (
           <p>{t('noOpenOrders')}</p>
         ) : (
           <div>
-            {filteredOrders.map((order, index) => {
-              const fromToken = order.fromToken === ETH_ADDRESS ? 'ETH' : order.fromToken
-              const toToken = order.toToken === ETH_ADDRESS ? 'ETH' : order.toToken
-
-              return (
-                <Order key={index} className="order">
-                  <div className="tokens">
-                    <CurrencySelect selected={true}>
-                      <Aligner>
-                        {<TokenLogo address={fromToken} />}
-                        {
-                          <StyledTokenName>
-                            {(allTokens[fromToken] && allTokens[fromToken].symbol) || fromToken}
-                          </StyledTokenName>
-                        }
-                      </Aligner>
-                    </CurrencySelect>
-                    <Aligner>
-                      <RightArrow transform="rotate(-90)" />
-                    </Aligner>
-                    <CurrencySelect selected={true}>
-                      <Aligner>
-                        {<TokenLogo address={toToken} />}
-                        {
-                          <StyledTokenName>
-                            {(allTokens[toToken] && allTokens[toToken].symbol) || toToken}
-                          </StyledTokenName>
-                        }
-                      </Aligner>
-                    </CurrencySelect>
-                  </div>
-                  <p>
-                    {
-                      pendingOrders.indexOf(order.data) === -1 ?
-                      <>{`Amount: ${ethers.utils.formatUnits(order.amount, 18)}`} <TokenLogo address={fromToken} /></>
-                      : 'Pending ...'
-                    }
-                  </p>
-                  <p>
-                    {`Min return: ${ethers.utils.formatUnits(order.minReturn, 18)}`} <TokenLogo address={toToken} />
-                  </p>
-                  <p>
-                    {`Fee: ${ethers.utils.formatUnits(order.fee, 18)}`} <TokenLogo address={'ETH'} />
-                  </p>
-                  <Button className="cta" disabled={pendingCancelOrders.indexOf(order.data) !== -1} onClick={
-                      () => onCancel(order, pendingOrders.indexOf(order.data) !== -1)
-                    }>
-                    {pendingCancelOrders.indexOf(order.data) === -1 ? t('cancel') : "Cancelling ..."}
-                  </Button>
-                </Order>
-              )
-            })}
+            {orders.map((order) => <OrderCard key={order.witness} data={{ order: order }} />)}
           </div>
         )}
       </div>
     </>
+  )
+}
+
+function OrderCard(props) {
+  const { t } = useTranslation()
+
+  const order = props.data.order;
+
+  const fromToken = order.fromToken === ETH_ADDRESS ? 'ETH' : order.fromToken
+  const toToken = order.toToken === ETH_ADDRESS ? 'ETH' : order.toToken
+
+  const { symbol: fromSymbol, decimals: fromDecimals } = useTokenDetails(fromToken)
+  const { symbol: toSymbol, decimals: toDecimals } = useTokenDetails(toToken)
+  const state = useOrderPendingState(order)
+
+  const canceling = state === ACTION_CANCEL_ORDER
+  const pending = state === ACTION_PLACE_ORDER
+
+
+  const uniswapEXContract = useUniswapExContract()
+  const addTransaction = useTransactionAdder()
+
+
+  async function onCancel(order, pending) {
+    const { fromToken, toToken, minReturn, fee, owner, witness, data } = order
+    uniswapEXContract.cancelOrder(fromToken, toToken, minReturn, fee, owner, witness, {
+      gasLimit: pending ? 400000 : undefined
+    }).then(response => {
+      addTransaction(response, { action: ACTION_CANCEL_ORDER, order: data })
+    })
+  }
+
+  return (
+    <Order className="order">
+      <div className="tokens">
+        <CurrencySelect selected={true}>
+          <Aligner>
+            {<TokenLogo address={fromToken} />}
+            {<StyledTokenName>{fromSymbol}</StyledTokenName>}
+          </Aligner>
+        </CurrencySelect>
+        <Aligner>
+          <RightArrow transform="rotate(-90)" />
+        </Aligner>
+        <CurrencySelect selected={true}>
+          <Aligner>
+            {<TokenLogo address={toToken} />}
+            {<StyledTokenName>{toSymbol}</StyledTokenName>}
+          </Aligner>
+        </CurrencySelect>
+      </div>
+      <p>
+        {
+          !pending ?
+        <>{`Amount: ${amountFormatter(ethers.utils.bigNumberify(order.amount), fromDecimals, 6)}`} {fromSymbol}</>
+          : 'Pending ...'
+        }
+      </p>
+      <p>
+        {`Min return: ${amountFormatter(ethers.utils.bigNumberify(order.minReturn), toDecimals, 6)}`} {toSymbol}
+      </p>
+      <p>
+        {`Fee: ${amountFormatter(ethers.utils.bigNumberify(order.fee), 18, 6)}`} ETH
+      </p>
+      <Button className="cta" disabled={canceling} onClick={() => onCancel(order, pending)}>
+        {canceling ? "Cancelling ..." : t('cancel')}
+      </Button>
+    </Order>
   )
 }
