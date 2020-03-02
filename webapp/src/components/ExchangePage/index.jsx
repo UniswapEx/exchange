@@ -714,7 +714,8 @@ export default function ExchangePage({ initialCurrency }) {
   const [inputError, setInputError] = useState()
 
   const stateBackfill = useBackfill(account, uniswapEXContract)
-  const loading = stateBackfill.ranBackfill[account] !== BACKFILL_DONE || stateBackfill.ranEthBackfill[account] !== BACKFILL_DONE
+  const loading =
+    stateBackfill.ranBackfill[account] !== BACKFILL_DONE || stateBackfill.ranEthBackfill[account] !== BACKFILL_DONE
 
   const pendingOrders = useAllPendingOrders()
   const { allOrders, openOrders } = useStoredOrders(account, uniswapEXContract, [
@@ -1294,19 +1295,21 @@ export default function ExchangePage({ initialCurrency }) {
       )}
       <div>
         <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
-        { loading && (
-          <><SpinnerWrapper src={Circle} alt="loader" /> Loading ...<br/><br/></>
+        {loading && (
+          <>
+            <SpinnerWrapper src={Circle} alt="loader" /> Loading ...
+            <br />
+            <br />
+          </>
         )}
-        {orders.length === 0 && !loading && (
-          <p>{t('noOpenOrders')}</p>
-        )}
-        {(
+        {orders.length === 0 && !loading && <p>{t('noOpenOrders')}</p>}
+        {
           <div>
             {orders.map(order => (
               <OrderCard key={order.witness} data={{ order: order }} />
             ))}
           </div>
-        )}
+        }
       </div>
     </>
   )
