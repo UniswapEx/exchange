@@ -36,7 +36,7 @@ const BodyWrapper = styled.div`
   justify-content: flex-start;
   align-items: center;
   flex: 1;
-  overflow: auto;
+  overflow: inherit;
 `
 
 const Body = styled.div`
