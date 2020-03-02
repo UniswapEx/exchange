@@ -1,4 +1,4 @@
-import React, { createContext, useState, useReducer, useEffect } from 'react'
+import React, { useState, useReducer, useEffect } from 'react'
 import ReactGA from 'react-ga'
 
 import { useTranslation } from 'react-i18next'
@@ -6,7 +6,7 @@ import { useWeb3Context } from 'web3-react'
 import { aggregate } from '@makerdao/multicall'
 import * as ls from 'local-storage'
 
-import { safeAccess, isAddress } from '../../utils'
+import { isAddress } from '../../utils'
 
 import { ethers } from 'ethers'
 import styled from 'styled-components'
@@ -24,7 +24,7 @@ import SVGDiv from '../../assets/svg/SVGDiv'
 import { amountFormatter } from '../../utils'
 import { useUniswapExContract } from '../../hooks'
 import { Spinner } from '../../theme'
-import { useTokenDetails, useAllTokenDetails } from '../../contexts/Tokens'
+import { useTokenDetails } from '../../contexts/Tokens'
 import {
   useTransactionAdder,
   ACTION_PLACE_ORDER,
@@ -741,7 +741,6 @@ export default function ExchangePage({ initialCurrency }) {
     inputCurrency
   )
   const { symbol: outputSymbol, decimals: outputDecimals } = useTokenDetails(outputCurrency)
-  const allTokens = useAllTokenDetails()
 
   // get input allowance
   const inputAllowance = useAddressAllowance(account, inputCurrency, inputExchangeAddress)
