@@ -189,3 +189,55 @@ export function usePendingApproval(tokenAddress) {
     }).length >= 1
   )
 }
+
+export const ACTION_PLACE_ORDER = 0
+export const ACTION_CANCEL_ORDER = 1
+
+export const ORDER_NOT_PENDING = -1
+
+export function useOrderPendingState(orderData) {
+  const allTransactions = useAllTransactions()
+
+  const last = Object.keys(allTransactions).find(
+    hash =>
+      allTransactions[hash][RESPONSE] &&
+      allTransactions[hash][RESPONSE][CUSTOM_DATA].order === orderData &&
+      !allTransactions[hash][RECEIPT]
+  )
+
+  if (last === undefined) {
+    return ORDER_NOT_PENDING
+  }
+
+  return allTransactions[last][RESPONSE][CUSTOM_DATA].action
+}
+
+export function useAllPendingOrders() {
+  const allTransactions = useAllTransactions()
+  return Object.keys(allTransactions)
+    .filter(hash => {
+      if (allTransactions[hash][RECEIPT]) {
+        return false
+      } else if (!allTransactions[hash][RESPONSE]) {
+        return false
+      } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_PLACE_ORDER) {
+        return true
+      }
+    })
+    .map(hash => allTransactions[hash][RESPONSE][CUSTOM_DATA].order)
+}
+
+export function useAllPendingCancelOrders() {
+  const allTransactions = useAllTransactions()
+  return Object.keys(allTransactions)
+    .filter(hash => {
+      if (allTransactions[hash][RECEIPT]) {
+        return false
+      } else if (!allTransactions[hash][RESPONSE]) {
+        return false
+      } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_CANCEL_ORDER) {
+        return true
+      }
+    })
+    .map(hash => allTransactions[hash][RESPONSE][CUSTOM_DATA].order)
+}
