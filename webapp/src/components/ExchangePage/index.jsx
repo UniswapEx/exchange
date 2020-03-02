@@ -175,10 +175,9 @@ function saveOrder(account, orderData) {
   if (prev === null) {
     ls.set(key, [orderData])
   } else {
-    const parsed = prev
-    if (parsed.indexOf(orderData) === -1) {
-      parsed.push(orderData)
-      ls.set(key, parsed)
+    if (prev.indexOf(orderData) === -1) {
+      prev.push(orderData)
+      ls.set(key, prev)
     }
   }
 }
