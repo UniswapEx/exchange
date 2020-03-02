@@ -69,17 +69,6 @@ const RATE_OP_DIV = '/'
 // Addresses
 const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 
-// Bytes
-const ORDER_BYTES_LENGTH = 448
-const TRANSFER_TX_LENGTH = 136
-const TX_PADDED_BYTES_BOILERPLATE = 128
-
-// Contract
-const CONTRACT_DEPLOYED_BLOCK = 8579313
-const TRANSFER_SELECTOR = 'a9059cbb'
-const BALANCE_SELECTOR = '0x70a08231'
-const DEPOSIT_ORDER_EVENT_TOPIC0 = '0x294738b98bcebacf616fd72532d3d8d8d229807bf03b68b25681bfbbdb3d3fe5'
-
 // Order fee
 const ORDER_FEE = '6000000000000000' // 0,006 ETH
 const ORDER_MIN_FEE = 300000 * 1e9 // Fee with 1 GWEI
