@@ -210,11 +210,11 @@ export const ORDER_NOT_PENDING = -1
 //   })
 // }
 
-
 export function useOrderPendingState(orderData) {
   const allTransactions = useAllTransactions()
 
-  const last = Object.keys(allTransactions).find(hash =>
+  const last = Object.keys(allTransactions).find(
+    hash =>
       allTransactions[hash][RESPONSE] &&
       allTransactions[hash][RESPONSE][CUSTOM_DATA].order === orderData &&
       !allTransactions[hash][RECEIPT]
@@ -229,27 +229,30 @@ export function useOrderPendingState(orderData) {
 
 export function useAllPendingOrders() {
   const allTransactions = useAllTransactions()
-  return Object.keys(allTransactions).filter((hash) => {
-    if (allTransactions[hash][RECEIPT]) {
-      return false
-    } else if (!allTransactions[hash][RESPONSE]) {
-      return false
-    } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_PLACE_ORDER) {
-      return true
-    }
-  }).map((hash) => allTransactions[hash][RESPONSE][CUSTOM_DATA].order)
+  return Object.keys(allTransactions)
+    .filter(hash => {
+      if (allTransactions[hash][RECEIPT]) {
+        return false
+      } else if (!allTransactions[hash][RESPONSE]) {
+        return false
+      } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_PLACE_ORDER) {
+        return true
+      }
+    })
+    .map(hash => allTransactions[hash][RESPONSE][CUSTOM_DATA].order)
 }
 
 export function useAllPendingCancelOrders() {
   const allTransactions = useAllTransactions()
-  return Object.keys(allTransactions).filter((hash) => {
-    if (allTransactions[hash][RECEIPT]) {
-      return false
-    } else if (!allTransactions[hash][RESPONSE]) {
-      return false
-    } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_CANCEL_ORDER) {
-      return true
-    }
-  }).map((hash) => allTransactions[hash][RESPONSE][CUSTOM_DATA].order)
+  return Object.keys(allTransactions)
+    .filter(hash => {
+      if (allTransactions[hash][RECEIPT]) {
+        return false
+      } else if (!allTransactions[hash][RESPONSE]) {
+        return false
+      } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_CANCEL_ORDER) {
+        return true
+      }
+    })
+    .map(hash => allTransactions[hash][RESPONSE][CUSTOM_DATA].order)
 }
-
