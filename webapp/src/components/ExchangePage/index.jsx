@@ -165,9 +165,6 @@ const SpinnerWrapper = styled(Spinner)`
 // ///
 // Local storage
 // ///
-
-var signalStorageUpdate = 0
-
 const LS_ORDERS = "orders_"
 const LS_LAST_BACKFILL = "last_backfill_"
 const LS_LAST_ETH_BACKFILL = "last_backfill_eth_"
@@ -181,8 +178,6 @@ function saveOrder(account, orderData) {
 
   const key = lsKey(LS_ORDERS, account)
   const prev = ls.get(key)
-
-  signalStorageUpdate++
 
   if (prev === null) {
     ls.set(key, [orderData])
@@ -470,12 +465,7 @@ function findOrders(data) {
   return orders
 }
 
-async function backfillOrders(account) {
-  if (!account) return
-
-  if (ranBackfill[account]) return
-  ranBackfill[account] = true
-
+async function backfillOrders(account, onUpdate = (_) => {}) {
   const reviewedTxs = new Set()
 
   const targetBlock = await readWeb3.eth.getBlockNumber()
@@ -504,7 +494,7 @@ async function backfillOrders(account) {
       for (const order of orders) {
         console.info(`Found order ${txHash}`)
         saveOrder(account, order)
-        signalStorageUpdate++;
+        onUpdate(log.blockNumber)
       }
 
 
@@ -517,7 +507,8 @@ async function backfillOrders(account) {
   }
 
   setLastBackfill(account, targetBlock)
-  console.info(`Finished backfill for ${account}`)
+  console.info(`Finished backfill for ${account} up to ${targetBlock}`)
+  return targetBlock
 }
 
 async function backfillEthOrders(account, uniswapEx) {
@@ -552,6 +543,47 @@ async function backfillEthOrders(account, uniswapEx) {
   console.info(`Finished ETH backfill for ${account}`)
 }
 
+const BACKFILL_RUNNING = 1
+const BACKFILL_DONE = 2
+
+function useBackfill(account, uniswapEXContract) {
+  const [oState, setOState] = useState({
+      ranBackfill: {},
+      syncBlock: 0
+    }
+  )
+
+  const [eState, setEState] = useState({
+      ranEthBackfill: {},
+    }
+  )
+
+  useEffect(() => {
+    if (isAddress(account) && oState.ranBackfill[account] === undefined) {
+      setOState({ ranBackfill: {...oState.ranBackfill, [account]: BACKFILL_RUNNING }})
+      backfillOrders(account, (block) => {
+        setOState({syncBlock: block, ranBackfill: {...oState.ranBackfill, [account]: BACKFILL_RUNNING }})
+      }).then((block) => {
+        setOState({
+          syncBlock: block,
+          ranBackfill: {...oState.ranBackfill, [account]: BACKFILL_DONE }
+        })
+      })
+    }
+  }, [account])
+
+  useEffect(() => {
+    if (isAddress(account) && eState.ranEthBackfill[account] === undefined) {
+      setEState({ ranEthBackfill: {...eState.ranEthBackfill, [account]: BACKFILL_RUNNING }})
+      backfillEthOrders(account, uniswapEXContract).then(() => {
+        setEState({ ranEthBackfill: {...eState.ranEthBackfill, [account]: BACKFILL_DONE }})
+      })
+    }
+  }, [account])
+
+  return {...oState, ...eState}
+}
+
 async function balancesOfOrders(orders, uniswapEXContract) {
   const result = await aggregate(
     orders.map((o, i) => {
@@ -575,7 +607,7 @@ async function balancesOfOrders(orders, uniswapEXContract) {
   return result.results
 }
 
-async function fetchUserOrders(account, uniswapEXContract, setInputError) {
+async function fetchUserOrders(account, uniswapEXContract) {
   const allOrders = getSavedOrders(account)
   const decodedOrders = allOrders.map((o) => decodeOrder(uniswapEXContract, o))
   const amounts = await balancesOfOrders(decodedOrders, uniswapEXContract)
@@ -586,15 +618,15 @@ async function fetchUserOrders(account, uniswapEXContract, setInputError) {
   }
 }
 
-function useStoredOrders(account, uniswapEXContract, pendingTxs) {
-  const [state, setState] = useState({ openOrders: [], allOrders: [] });
+function useStoredOrders(account, uniswapEXContract, deps = []) {
+  const [state, setState] = useState({ openOrders: [], allOrders: [] })
 
   useEffect(() => {
     console.log(`Requesting load orders from storage`)
     if (isAddress(account)) {
       let stale = false
       fetchUserOrders(account, uniswapEXContract).then((orders) => {
-        console.log(`Fetched ${orders.length} orders from local storage`)
+        console.log(`Fetched ${orders.allOrders.length} ${orders.openOrders.length} orders from local storage`)
         if (!stale) {
           setState(orders)
         } else {
@@ -605,7 +637,7 @@ function useStoredOrders(account, uniswapEXContract, pendingTxs) {
         stale = true
       }
     }
-  }, [account, signalStorageUpdate, pendingTxs.length])
+  }, [account, ...deps])
 
   return state
 }
@@ -694,13 +726,19 @@ export default function ExchangePage({ initialCurrency }) {
   const uniswapEXContract = useUniswapExContract()
   const [inputError, setInputError] = useState()
 
-  backfillOrders(account)
-  backfillEthOrders(account, uniswapEXContract)
+  const stateBackfill = useBackfill(account, uniswapEXContract)
 
   const pendingOrders = useAllPendingOrders()
-  const pendingCancelOrders = useAllPendingCancelOrders()
-  const allPending = pendingOrders.concat(pendingCancelOrders)
-  const { allOrders, openOrders } = useStoredOrders(account, uniswapEXContract, allPending)
+  const { allOrders, openOrders } = useStoredOrders(
+    account,
+    uniswapEXContract,
+    [
+      stateBackfill.syncBlock,
+      stateBackfill.ranBackfill[account],
+      stateBackfill.ranEthBackfill[account],
+      pendingOrders.length
+    ]
+  )
 
   const orders = openOrders.concat(allOrders.filter((o) => pendingOrders.indexOf(o.data) !== -1))
   const addTransaction = useTransactionAdder()
