@@ -718,11 +718,13 @@ export default function ExchangePage({ initialCurrency }) {
     account && (stateBackfill.ranBackfill[account] !== BACKFILL_DONE || stateBackfill.ranEthBackfill[account] !== BACKFILL_DONE)
 
   const pendingOrders = useAllPendingOrders()
+  const canceledOrders = useAllPendingCancelOrders()
   const { allOrders, openOrders } = useStoredOrders(account, uniswapEXContract, [
     stateBackfill.syncBlock,
     stateBackfill.ranBackfill[account],
     stateBackfill.ranEthBackfill[account],
-    pendingOrders.length
+    pendingOrders.length,
+    canceledOrders.length
   ])
 
   const orders = openOrders.concat(allOrders.filter(o => pendingOrders.indexOf(o.data) !== -1))
