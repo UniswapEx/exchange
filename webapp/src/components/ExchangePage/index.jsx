@@ -630,7 +630,7 @@ function useStoredOrders(account, uniswapEXContract, deps = []) {
         stale = true
       }
     }
-  }, [account, uniswapEXContract])
+  }, [...deps, account, uniswapEXContract])
 
   return state
 }
