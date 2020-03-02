@@ -574,6 +574,12 @@ const INITIAL_TOKENS_CONTEXT = {
       [SYMBOL]: 'CBIX7',
       [DECIMALS]: 18,
       [EXCHANGE_ADDRESS]: '0x93a8515d674c3d3235beea0de7ae3099aa34b1a5'
+    },
+    '0x493c8d6a973246a7b26aa8ef4b1494867a825de5': {
+      [NAME]: 'NuLink',
+      [SYMBOL]: 'NLINK',
+      [DECIMALS]: 3,
+      [EXCHANGE_ADDRESS]: '0xc31e9177e6a6967b6265f83c4593658c8e2e4cb2'
     }
   },
   4: {
