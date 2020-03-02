@@ -195,21 +195,6 @@ export const ACTION_CANCEL_ORDER = 1
 
 export const ORDER_NOT_PENDING = -1
 
-// export usePendingState(orderData) {
-//   const allTransactions = useAllTransactions()
-//   Object.keys(allTransactions).filter((hash) => {
-//     if (allTransactions[hash][RECEIPT]) {
-//       return ORDER_NOT_PENDING
-//     } else if (!allTransactions[hash][RESPONSE]) {
-//       return ORDER_NOT_PENDING
-//     } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_PLACE_ORDER) {
-//       return ACTION_PLACE_ORDER
-//     } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_CANCEL_ORDER) {
-//       return ACTION_CANCEL_ORDER
-//     }
-//   })
-// }
-
 export function useOrderPendingState(orderData) {
   const allTransactions = useAllTransactions()
 
