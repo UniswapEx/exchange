@@ -715,7 +715,7 @@ export default function ExchangePage({ initialCurrency }) {
 
   const stateBackfill = useBackfill(account, uniswapEXContract)
   const loading =
-    stateBackfill.ranBackfill[account] !== BACKFILL_DONE || stateBackfill.ranEthBackfill[account] !== BACKFILL_DONE
+    account && (stateBackfill.ranBackfill[account] !== BACKFILL_DONE || stateBackfill.ranEthBackfill[account] !== BACKFILL_DONE)
 
   const pendingOrders = useAllPendingOrders()
   const { allOrders, openOrders } = useStoredOrders(account, uniswapEXContract, [
