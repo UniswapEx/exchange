@@ -49,9 +49,6 @@ const MULTICALL_CONFIG = {
 // Use to detach input from output
 let inputValue
 
-let ranBackfill = {}
-let ranEthBackfill = {}
-
 const INPUT = 0
 const OUTPUT = 1
 const RATE = 2
@@ -507,11 +504,6 @@ async function backfillOrders(account, onUpdate = _ => {}) {
 }
 
 async function backfillEthOrders(account, uniswapEx) {
-  if (!account) return
-
-  if (ranEthBackfill[account]) return
-  ranEthBackfill[account] = true
-
   const targetBlock = await readWeb3.eth.getBlockNumber()
   const last = getLastEthBackfill(account)
   console.info(`Running ETH backfill for ${account} - ${last}/${targetBlock}`)
@@ -530,7 +522,7 @@ async function backfillEthOrders(account, uniswapEx) {
   console.info(`Found ${logs.length} ETH orders for ${account}`)
 
   for (const log of logs) {
-    const order = log.data.slice(194)
+    const order = `0x${log.data.slice(194)}`
     saveOrder(account, order)
   }
 
@@ -1303,7 +1295,7 @@ export default function ExchangePage({ initialCurrency }) {
       <div>
         <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
         { loading && (
-          <><SpinnerWrapper src={Circle} alt="loader" /> Loading ...</>
+          <><SpinnerWrapper src={Circle} alt="loader" /> Loading ...<br/><br/></>
         )}
         {orders.length === 0 && !loading && (
           <p>{t('noOpenOrders')}</p>
