@@ -593,7 +593,7 @@ async function balancesOfOrders(orders, uniswapEXContract) {
 
 async function fetchUserOrders(account, uniswapEXContract) {
   const allOrders = getSavedOrders(account)
-  const decodedOrders = allOrders.map(o => decodeOrder(uniswapEXContract, o))
+  const decodedOrders = allOrders.map(o => decodeOrder(o))
   const amounts = await balancesOfOrders(decodedOrders, uniswapEXContract)
   decodedOrders.map((o, i) => (o.amount = amounts[i]))
   return {
@@ -648,8 +648,7 @@ function vaultForOrder(order, uniswapEXContract) {
   return `0x${hash.slice(-40)}`
 }
 
-function decodeOrder(uniswapEXContract, data) {
-  // const { fromToken, toToken, minReturn, fee, owner, witness } = await uniswapEXContract.decodeOrder(data)
+function decodeOrder(data) {
   const decoded = readWeb3.eth.abi.decodeParameters(
     ['address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'address'],
     data
