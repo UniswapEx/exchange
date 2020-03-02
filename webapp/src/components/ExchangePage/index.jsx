@@ -1302,11 +1302,13 @@ export default function ExchangePage({ initialCurrency }) {
       )}
       <div>
         <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
-        { loading ? (
+        { loading && (
           <><SpinnerWrapper src={Circle} alt="loader" /> Loading ...</>
-        ) : orders.length === 0 ? (
+        )}
+        {orders.length === 0 && !loading && (
           <p>{t('noOpenOrders')}</p>
-        ) : (
+        )}
+        {(
           <div>
             {orders.map(order => (
               <OrderCard key={order.witness} data={{ order: order }} />
