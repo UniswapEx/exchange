@@ -1376,9 +1376,13 @@ function OrderCard(props) {
       <p>
         {`Min return: ${amountFormatter(ethers.utils.bigNumberify(order.minReturn), toDecimals, 6)}`} {toSymbol}
       </p>
-      <p>{`Execution fee: ${
-          amountFormatter(ethers.utils.bigNumberify(order.fee).div(ethers.utils.bigNumberify(EXECUTE_ORDER_GAS_USAGE)), 9, 3)}`
-        } GWEI</p>
+      <p>
+        {`Execution fee: ${
+          amountFormatter(ethers.utils.bigNumberify(order.fee), 18, 6)}`
+        } ETH (~{
+          amountFormatter(ethers.utils.bigNumberify(order.fee).div(ethers.utils.bigNumberify(EXECUTE_ORDER_GAS_USAGE)), 9, 3)
+        } GWEI)
+      </p>
       <Button className="cta" disabled={canceling} onClick={() => onCancel(order, pending)}>
         {canceling ? 'Cancelling ...' : t('cancel')}
       </Button>
