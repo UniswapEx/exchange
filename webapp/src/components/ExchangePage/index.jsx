@@ -41,6 +41,8 @@ import './ExchangePage.css'
 
 const readWeb3 = new Web3(process.env.REACT_APP_NETWORK_URL)
 
+const EXECUTE_ORDER_GAS_USAGE = '300000' // 300,000 GAS
+
 const MULTICALL_CONFIG = {
   multicallAddress: '0xeefba1e63905ef1d7acba5a8513c70307c1ce441',
   rpcUrl: process.env.REACT_APP_NETWORK_URL
@@ -1374,7 +1376,9 @@ function OrderCard(props) {
       <p>
         {`Min return: ${amountFormatter(ethers.utils.bigNumberify(order.minReturn), toDecimals, 6)}`} {toSymbol}
       </p>
-      <p>{`Fee: ${amountFormatter(ethers.utils.bigNumberify(order.fee), 18, 6)}`} ETH</p>
+      <p>{`Execution fee: ${
+          amountFormatter(ethers.utils.bigNumberify(order.fee).div(ethers.utils.bigNumberify(EXECUTE_ORDER_GAS_USAGE)), 9, 3)}`
+        } GWEI</p>
       <Button className="cta" disabled={canceling} onClick={() => onCancel(order, pending)}>
         {canceling ? 'Cancelling ...' : t('cancel')}
       </Button>
