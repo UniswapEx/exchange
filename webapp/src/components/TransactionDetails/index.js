@@ -390,27 +390,27 @@ export default function TransactionDetails(props) {
           <SlippageRow wrap>
             <Option
               onClick={() => {
-                setFromFixed(1, 10)
+                setFromFixed(1, 20)
               }}
               active={activeIndex === 1}
             >
-              10
+              20
             </Option>
             <OptionLarge
               onClick={() => {
-                setFromFixed(2, 20)
+                setFromFixed(2, 60)
               }}
               active={activeIndex === 2}
             >
-              20 <Faded>(suggested)</Faded>
+              60 <Faded>(suggested)</Faded>
             </OptionLarge>
             <Option
               onClick={() => {
-                setFromFixed(3, 40)
+                setFromFixed(3, 90)
               }}
               active={activeIndex === 3}
             >
-              40
+              90
             </Option>
             <OptionCustom
               active={activeIndex === 4}
@@ -471,9 +471,9 @@ export default function TransactionDetails(props) {
 
   // used for slippage presets
   const setFromFixed = (index, gasPrice) => {
-    if (gasPrice < 1) {
+    if (gasPrice < 10) {
       setWarningType(WARNING_TYPE.noSend)
-    } else if (gasPrice < 5) {
+    } else if (gasPrice < 20) {
       setWarningType(WARNING_TYPE.almostNoSend)
     } else {
       setWarningType(WARNING_TYPE.none)
