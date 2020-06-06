@@ -7,6 +7,7 @@
 ## Table of Contents
 
 - [Introduction](#introduction)
+- [Contract](#contract)
 - [How it works](#how-it-works)
   - [Users](#users)
   - [Relayers](#relayers)
@@ -25,6 +26,10 @@ Every token combination is available. There **isn't** a limitation on how you ca
 An order at UniswapEX can only be canceled by its creator, and it can be executed if the creator receives the desired amount, making the system trustless and independent of a central entity.
 
 The [smart contract](https://etherscan.io/address/#code) is validated and can be reviewed by anyone. The code hasn't been audited by a reputable third party yet, and we advise to proceed with caution.
+
+## Contract
+
+Mainnet: https://etherscan.io/address/0xbd2a43799b83d9d0ff56b85d4c140bce3d1d1c6c
 
 ## How it works
 
