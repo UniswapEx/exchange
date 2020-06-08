@@ -4,7 +4,7 @@
     "src": "package.json",
     "use": "@now/static-build",
     "env": {
-      "REACT_APP_NETWORK_URL": "@app_network_url"
+      "REACT_APP_NETWORK_URL": "https://mainnet.infura.io/v3/a9bca4ddb8784b349f6ec65f04aadfea"
     }
   },
   "routes": [
