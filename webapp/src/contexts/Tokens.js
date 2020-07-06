@@ -197,12 +197,6 @@ const INITIAL_TOKENS_CONTEXT = {
       [DECIMALS]: 8,
       [EXCHANGE_ADDRESS]: '0xFFcf45b540e6C9F094Ae656D2e34aD11cdfdb187'
     },
-    '0x6fB3e0A217407EFFf7Ca062D46c26E5d60a14d69': {
-      [NAME]: 'IoTeX Network',
-      [SYMBOL]: 'IOTX',
-      [DECIMALS]: 18,
-      [EXCHANGE_ADDRESS]: '0x084f002671a5f03D5498B1e5fb15fc0cfee9a470'
-    },
     '0x818Fc6C2Ec5986bc6E2CBf00939d90556aB12ce5': {
       [NAME]: 'Kin',
       [SYMBOL]: 'KIN',

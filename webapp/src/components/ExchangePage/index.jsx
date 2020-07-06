@@ -713,7 +713,8 @@ export default function ExchangePage({ initialCurrency }) {
 
   const stateBackfill = useBackfill(account, uniswapEXContract)
   const loading =
-    account && (stateBackfill.ranBackfill[account] !== BACKFILL_DONE || stateBackfill.ranEthBackfill[account] !== BACKFILL_DONE)
+    account &&
+    (stateBackfill.ranBackfill[account] !== BACKFILL_DONE || stateBackfill.ranEthBackfill[account] !== BACKFILL_DONE)
 
   const pendingOrders = useAllPendingOrders()
   const canceledOrders = useAllPendingCancelOrders()
@@ -1095,10 +1096,12 @@ export default function ExchangePage({ initialCurrency }) {
         : method(fromCurrency, toCurrency, amount, minimumReturn, relayerFee, account, privateKey, address))
       const order = swapType === ETH_TO_TOKEN ? data : `0x${data.slice(267)}`
       saveOrder(account, order)
+      const webThree = new Web3(window.ethereum)
+      console.log(webThree)
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
         : new Promise((resolve, reject) =>
-            window.web3.eth.sendTransaction(
+            webThree.eth.sendTransaction(
               {
                 from: account,
                 to: fromCurrency,
