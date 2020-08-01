@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useMemo, useCallback, useEffect } from 'react'
-import { useWeb3Context } from 'web3-react'
+import { useWeb3React } from '@web3-react/core'
 
 import { safeAccess, isAddress, getEtherBalance, getTokenBalance } from '../utils'
 import { useBlockNumber } from './Application'
@@ -16,13 +16,13 @@ function useBalancesContext() {
 function reducer(state, { type, payload }) {
   switch (type) {
     case UPDATE: {
-      const { networkId, address, tokenAddress, value, blockNumber } = payload
+      const { chainId, address, tokenAddress, value, blockNumber } = payload
       return {
         ...state,
-        [networkId]: {
-          ...(safeAccess(state, [networkId]) || {}),
+        [chainId]: {
+          ...(safeAccess(state, [chainId]) || {}),
           [address]: {
-            ...(safeAccess(state, [networkId, address]) || {}),
+            ...(safeAccess(state, [chainId, address]) || {}),
             [tokenAddress]: {
               value,
               blockNumber
@@ -40,8 +40,8 @@ function reducer(state, { type, payload }) {
 export default function Provider({ children }) {
   const [state, dispatch] = useReducer(reducer, {})
 
-  const update = useCallback((networkId, address, tokenAddress, value, blockNumber) => {
-    dispatch({ type: UPDATE, payload: { networkId, address, tokenAddress, value, blockNumber } })
+  const update = useCallback((chainId, address, tokenAddress, value, blockNumber) => {
+    dispatch({ type: UPDATE, payload: { chainId, address, tokenAddress, value, blockNumber } })
   }, [])
 
   return (
@@ -52,38 +52,38 @@ export default function Provider({ children }) {
 }
 
 export function useAddressBalance(address, tokenAddress) {
-  const { networkId, library } = useWeb3Context()
+  const { chainId, library } = useWeb3React()
 
   const globalBlockNumber = useBlockNumber()
 
   const [state, { update }] = useBalancesContext()
-  const { value, blockNumber } = safeAccess(state, [networkId, address, tokenAddress]) || {}
+  const { value, blockNumber } = safeAccess(state, [chainId, address, tokenAddress]) || {}
 
   useEffect(() => {
     if (
       isAddress(address) &&
       (tokenAddress === 'ETH' || isAddress(tokenAddress)) &&
       (value === undefined || blockNumber !== globalBlockNumber) &&
-      (networkId || networkId === 0) &&
+      (chainId || chainId === 0) &&
       library
     ) {
       let stale = false
       ;(tokenAddress === 'ETH' ? getEtherBalance(address, library) : getTokenBalance(tokenAddress, address, library))
         .then(value => {
           if (!stale) {
-            update(networkId, address, tokenAddress, value, globalBlockNumber)
+            update(chainId, address, tokenAddress, value, globalBlockNumber)
           }
         })
         .catch(() => {
           if (!stale) {
-            update(networkId, address, tokenAddress, null, globalBlockNumber)
+            update(chainId, address, tokenAddress, null, globalBlockNumber)
           }
         })
       return () => {
         stale = true
       }
     }
-  }, [address, tokenAddress, value, blockNumber, globalBlockNumber, networkId, library, update])
+  }, [address, tokenAddress, value, blockNumber, globalBlockNumber, chainId, library, update])
 
   return value
 }

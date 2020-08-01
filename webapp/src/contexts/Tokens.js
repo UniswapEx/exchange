@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useMemo, useCallback, useEffect } from 'react'
-import { useWeb3Context } from 'web3-react'
+import { useWeb3React } from '@web3-react/core'
 import { ethers } from 'ethers'
 
 import {
@@ -691,11 +691,11 @@ function useTokensContext() {
 function reducer(state, { type, payload }) {
   switch (type) {
     case UPDATE: {
-      const { networkId, tokenAddress, name, symbol, decimals, exchangeAddress } = payload
+      const { chainId, tokenAddress, name, symbol, decimals, exchangeAddress } = payload
       return {
         ...state,
-        [networkId]: {
-          ...(safeAccess(state, [networkId]) || {}),
+        [chainId]: {
+          ...(safeAccess(state, [chainId]) || {}),
           [tokenAddress]: {
             [NAME]: name,
             [SYMBOL]: symbol,
@@ -714,8 +714,8 @@ function reducer(state, { type, payload }) {
 export default function Provider({ children }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_TOKENS_CONTEXT)
 
-  const update = useCallback((networkId, tokenAddress, name, symbol, decimals, exchangeAddress) => {
-    dispatch({ type: UPDATE, payload: { networkId, tokenAddress, name, symbol, decimals, exchangeAddress } })
+  const update = useCallback((chainId, tokenAddress, name, symbol, decimals, exchangeAddress) => {
+    dispatch({ type: UPDATE, payload: { chainId, tokenAddress, name, symbol, decimals, exchangeAddress } })
   }, [])
 
   return (
@@ -726,10 +726,10 @@ export default function Provider({ children }) {
 }
 
 export function useTokenDetails(tokenAddress) {
-  const { networkId, library } = useWeb3Context()
+  const { chainId, library } = useWeb3React()
 
   const [state, { update }] = useTokensContext()
-  const allTokensInNetwork = { ...ETH, ...(safeAccess(state, [networkId]) || {}) }
+  const allTokensInNetwork = { ...ETH, ...(safeAccess(state, [chainId]) || {}) }
   const { [NAME]: name, [SYMBOL]: symbol, [DECIMALS]: decimals, [EXCHANGE_ADDRESS]: exchangeAddress } =
     safeAccess(allTokensInNetwork, [tokenAddress]) || {}
 
@@ -737,7 +737,7 @@ export function useTokenDetails(tokenAddress) {
     if (
       isAddress(tokenAddress) &&
       (name === undefined || symbol === undefined || decimals === undefined || exchangeAddress === undefined) &&
-      (networkId || networkId === 0) &&
+      (chainId || chainId === 0) &&
       library
     ) {
       let stale = false
@@ -745,14 +745,14 @@ export function useTokenDetails(tokenAddress) {
       const namePromise = getTokenName(tokenAddress, library).catch(() => null)
       const symbolPromise = getTokenSymbol(tokenAddress, library).catch(() => null)
       const decimalsPromise = getTokenDecimals(tokenAddress, library).catch(() => null)
-      const exchangeAddressPromise = getTokenExchangeAddressFromFactory(tokenAddress, networkId, library).catch(
+      const exchangeAddressPromise = getTokenExchangeAddressFromFactory(tokenAddress, chainId, library).catch(
         () => null
       )
 
       Promise.all([namePromise, symbolPromise, decimalsPromise, exchangeAddressPromise]).then(
         ([resolvedName, resolvedSymbol, resolvedDecimals, resolvedExchangeAddress]) => {
           if (!stale) {
-            update(networkId, tokenAddress, resolvedName, resolvedSymbol, resolvedDecimals, resolvedExchangeAddress)
+            update(chainId, tokenAddress, resolvedName, resolvedSymbol, resolvedDecimals, resolvedExchangeAddress)
           }
         }
       )
@@ -760,16 +760,16 @@ export function useTokenDetails(tokenAddress) {
         stale = true
       }
     }
-  }, [tokenAddress, name, symbol, decimals, exchangeAddress, networkId, library, update])
+  }, [tokenAddress, name, symbol, decimals, exchangeAddress, chainId, library, update])
 
   return { name, symbol, decimals, exchangeAddress }
 }
 
 export function useAllTokenDetails(requireExchange = true) {
-  const { networkId } = useWeb3Context()
+  const { chainId } = useWeb3React()
 
   const [state] = useTokensContext()
-  const tokenDetails = { ...ETH, ...(safeAccess(state, [networkId]) || {}) }
+  const tokenDetails = { ...ETH, ...(safeAccess(state, [chainId]) || {}) }
 
   return requireExchange
     ? Object.keys(tokenDetails)

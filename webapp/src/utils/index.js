@@ -1,4 +1,6 @@
 import { ethers } from 'ethers'
+import { Contract } from '@ethersproject/contracts'
+import { AddressZero } from '@ethersproject/constants'
 
 import FACTORY_ABI from '../constants/abis/factory'
 import EXCHANGE_ABI from '../constants/abis/exchange'
@@ -34,8 +36,8 @@ const ETHERSCAN_PREFIXES = {
   5: 'goerli.',
   42: 'kovan.'
 }
-export function getEtherscanLink(networkId, data, type) {
-  const prefix = `https://${ETHERSCAN_PREFIXES[networkId] || ETHERSCAN_PREFIXES[1]}etherscan.io`
+export function getEtherscanLink(chainId, data, type) {
+  const prefix = `https://${ETHERSCAN_PREFIXES[chainId] || ETHERSCAN_PREFIXES[1]}etherscan.io`
 
   switch (type) {
     case 'transaction': {
@@ -48,8 +50,8 @@ export function getEtherscanLink(networkId, data, type) {
   }
 }
 
-export function getNetworkName(networkId) {
-  switch (networkId) {
+export function getNetworkName(chainId) {
+  switch (chainId) {
     case 1: {
       return 'the Main Ethereum Network'
     }
@@ -95,28 +97,33 @@ export function calculateGasMargin(value, margin) {
   return value.add(offset)
 }
 
+// account is not optional
+export function getSigner(library, account) {
+  return library.getSigner(account).connectUnchecked()
+}
+
 // account is optional
 export function getProviderOrSigner(library, account) {
-  return account ? new UncheckedJsonRpcSigner(library.getSigner(account)) : library
+  return account ? getSigner(library, account) : library
 }
 
 // account is optional
 export function getContract(address, ABI, library, account) {
-  if (!isAddress(address) || address === ethers.constants.AddressZero) {
+  if (!isAddress(address) || address === AddressZero) {
     throw Error(`Invalid 'address' parameter '${address}'.`)
   }
 
-  return new ethers.Contract(address, ABI, getProviderOrSigner(library, account))
+  return new Contract(address, ABI, getProviderOrSigner(library, account))
 }
 
 // account is optional
-export function getUniswapExContract(networkId, library, account) {
-  return getContract(UNISWAPEX_ADDRESSES[networkId], UNISWAPEX_ABI, library, account)
+export function getUniswapExContract(chainId, library, account) {
+  return getContract(UNISWAPEX_ADDRESSES[chainId], UNISWAPEX_ABI, library, account)
 }
 
 // account is optional
-export function getFactoryContract(networkId, library, account) {
-  return getContract(FACTORY_ADDRESSES[networkId], FACTORY_ABI, library, account)
+export function getFactoryContract(chainId, library, account) {
+  return getContract(FACTORY_ADDRESSES[chainId], FACTORY_ABI, library, account)
 }
 
 // account is optional
@@ -176,8 +183,8 @@ export async function getTokenDecimals(tokenAddress, library) {
 }
 
 // get the exchange address for a token from the factory
-export async function getTokenExchangeAddressFromFactory(tokenAddress, networkId, library) {
-  return getFactoryContract(networkId, library).getExchange(tokenAddress)
+export async function getTokenExchangeAddressFromFactory(tokenAddress, chainId, library) {
+  return getFactoryContract(chainId, library).getExchange(tokenAddress)
 }
 
 // get the ether balance of an address

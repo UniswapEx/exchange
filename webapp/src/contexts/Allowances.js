@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useMemo, useCallback, useEffect } from 'react'
-import { useWeb3Context } from 'web3-react'
+import { useWeb3React } from '@web3-react/core'
 
 import { safeAccess, isAddress, getTokenAllowance } from '../utils'
 import { useBlockNumber } from './Application'
@@ -15,15 +15,15 @@ function useAllowancesContext() {
 function reducer(state, { type, payload }) {
   switch (type) {
     case UPDATE: {
-      const { networkId, address, tokenAddress, spenderAddress, value, blockNumber } = payload
+      const { chainId, address, tokenAddress, spenderAddress, value, blockNumber } = payload
       return {
         ...state,
-        [networkId]: {
-          ...(safeAccess(state, [networkId]) || {}),
+        [chainId]: {
+          ...(safeAccess(state, [chainId]) || {}),
           [address]: {
-            ...(safeAccess(state, [networkId, address]) || {}),
+            ...(safeAccess(state, [chainId, address]) || {}),
             [tokenAddress]: {
-              ...(safeAccess(state, [networkId, address, tokenAddress]) || {}),
+              ...(safeAccess(state, [chainId, address, tokenAddress]) || {}),
               [spenderAddress]: {
                 value,
                 blockNumber
@@ -42,8 +42,8 @@ function reducer(state, { type, payload }) {
 export default function Provider({ children }) {
   const [state, dispatch] = useReducer(reducer, {})
 
-  const update = useCallback((networkId, address, tokenAddress, spenderAddress, value, blockNumber) => {
-    dispatch({ type: UPDATE, payload: { networkId, address, tokenAddress, spenderAddress, value, blockNumber } })
+  const update = useCallback((chainId, address, tokenAddress, spenderAddress, value, blockNumber) => {
+    dispatch({ type: UPDATE, payload: { chainId, address, tokenAddress, spenderAddress, value, blockNumber } })
   }, [])
 
   return (
@@ -54,12 +54,12 @@ export default function Provider({ children }) {
 }
 
 export function useAddressAllowance(address, tokenAddress, spenderAddress) {
-  const { networkId, library } = useWeb3Context()
+  const { chainId, library } = useWeb3React()
 
   const globalBlockNumber = useBlockNumber()
 
   const [state, { update }] = useAllowancesContext()
-  const { value, blockNumber } = safeAccess(state, [networkId, address, tokenAddress, spenderAddress]) || {}
+  const { value, blockNumber } = safeAccess(state, [chainId, address, tokenAddress, spenderAddress]) || {}
 
   useEffect(() => {
     if (
@@ -67,7 +67,7 @@ export function useAddressAllowance(address, tokenAddress, spenderAddress) {
       isAddress(tokenAddress) &&
       isAddress(spenderAddress) &&
       (value === undefined || blockNumber !== globalBlockNumber) &&
-      (networkId || networkId === 0) &&
+      (chainId || chainId === 0) &&
       library
     ) {
       let stale = false
@@ -75,12 +75,12 @@ export function useAddressAllowance(address, tokenAddress, spenderAddress) {
       getTokenAllowance(address, tokenAddress, spenderAddress, library)
         .then(value => {
           if (!stale) {
-            update(networkId, address, tokenAddress, spenderAddress, value, globalBlockNumber)
+            update(chainId, address, tokenAddress, spenderAddress, value, globalBlockNumber)
           }
         })
         .catch(() => {
           if (!stale) {
-            update(networkId, address, tokenAddress, spenderAddress, null, globalBlockNumber)
+            update(chainId, address, tokenAddress, spenderAddress, null, globalBlockNumber)
           }
         })
 
@@ -88,7 +88,7 @@ export function useAddressAllowance(address, tokenAddress, spenderAddress) {
         stale = true
       }
     }
-  }, [address, tokenAddress, spenderAddress, value, blockNumber, globalBlockNumber, networkId, library, update])
+  }, [address, tokenAddress, spenderAddress, value, blockNumber, globalBlockNumber, chainId, library, update])
 
   return value
 }

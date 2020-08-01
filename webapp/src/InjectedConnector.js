@@ -70,15 +70,15 @@ export default class InjectedConnector extends ErrorCodeMixin(Connector, Injecte
   }
 
   // event handlers
-  networkChangedHandler(networkId) {
-    const networkIdNumber = Number(networkId)
+  networkChangedHandler(chainId) {
+    const chainIdNumber = Number(chainId)
 
     try {
-      super._validateNetworkId(networkIdNumber)
+      super._validatechainId(chainIdNumber)
 
       super._web3ReactUpdateHandler({
-        updateNetworkId: true,
-        networkId: networkIdNumber
+        updatechainId: true,
+        chainId: chainIdNumber
       })
     } catch (error) {
       super._web3ReactErrorHandler(error)

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useMemo, useCallback, useEffect } from 'react'
-import { useWeb3Context } from 'web3-react'
+import { useWeb3React } from '@web3-react/core'
 
 import { safeAccess } from '../utils'
 import { getUSDPrice } from '../utils/price'
@@ -19,22 +19,22 @@ function useApplicationContext() {
 function reducer(state, { type, payload }) {
   switch (type) {
     case UPDATE_BLOCK_NUMBER: {
-      const { networkId, blockNumber } = payload
+      const { chainId, blockNumber } = payload
       return {
         ...state,
         [BLOCK_NUMBER]: {
           ...(safeAccess(state, [BLOCK_NUMBER]) || {}),
-          [networkId]: blockNumber
+          [chainId]: blockNumber
         }
       }
     }
     case UPDATE_USD_PRICE: {
-      const { networkId, USDPrice } = payload
+      const { chainId, USDPrice } = payload
       return {
         ...state,
         [USD_PRICE]: {
           ...(safeAccess(state, [USD_PRICE]) || {}),
-          [networkId]: USDPrice
+          [chainId]: USDPrice
         }
       }
     }
@@ -50,12 +50,12 @@ export default function Provider({ children }) {
     [USD_PRICE]: {}
   })
 
-  const updateBlockNumber = useCallback((networkId, blockNumber) => {
-    dispatch({ type: UPDATE_BLOCK_NUMBER, payload: { networkId, blockNumber } })
+  const updateBlockNumber = useCallback((chainId, blockNumber) => {
+    dispatch({ type: UPDATE_BLOCK_NUMBER, payload: { chainId, blockNumber } })
   }, [])
 
-  const updateUSDPrice = useCallback((networkId, USDPrice) => {
-    dispatch({ type: UPDATE_USD_PRICE, payload: { networkId, USDPrice } })
+  const updateUSDPrice = useCallback((chainId, USDPrice) => {
+    dispatch({ type: UPDATE_USD_PRICE, payload: { chainId, USDPrice } })
   }, [])
 
   return (
@@ -68,7 +68,7 @@ export default function Provider({ children }) {
 }
 
 export function Updater() {
-  const { networkId, library, connectorName } = useWeb3Context()
+  const { chainId, library, connectorName } = useWeb3React()
 
   const globalBlockNumber = useBlockNumber()
   const [, { updateBlockNumber, updateUSDPrice }] = useApplicationContext()
@@ -89,19 +89,19 @@ export function Updater() {
     if (library) {
       let stale = false
 
-      getUSDPrice(library)
+      getUSDPrice(library.provider)
         .then(([price]) => {
           if (!stale) {
-            updateUSDPrice(networkId, price)
+            updateUSDPrice(chainId, price)
           }
         })
         .catch(() => {
           if (!stale) {
-            updateUSDPrice(networkId, null)
+            updateUSDPrice(chainId, null)
           }
         })
     }
-  }, [globalBlockNumber, library, networkId, updateUSDPrice])
+  }, [globalBlockNumber, library, chainId, updateUSDPrice])
 
   // update block number
   useEffect(() => {
@@ -113,12 +113,12 @@ export function Updater() {
           .getBlockNumber()
           .then(blockNumber => {
             if (!stale) {
-              updateBlockNumber(networkId, blockNumber)
+              updateBlockNumber(chainId, blockNumber)
             }
           })
           .catch(() => {
             if (!stale) {
-              updateBlockNumber(networkId, null)
+              updateBlockNumber(chainId, null)
             }
           })
       }
@@ -131,23 +131,23 @@ export function Updater() {
         library.removeListener('block', update)
       }
     }
-  }, [networkId, library, updateBlockNumber])
+  }, [chainId, library, updateBlockNumber])
 
   return null
 }
 
 export function useBlockNumber() {
-  const { networkId } = useWeb3Context()
+  const { chainId } = useWeb3React()
 
   const [state] = useApplicationContext()
 
-  return safeAccess(state, [BLOCK_NUMBER, networkId])
+  return safeAccess(state, [BLOCK_NUMBER, chainId])
 }
 
 export function useUSDPrice() {
-  const { networkId } = useWeb3Context()
+  const { chainId } = useWeb3React()
 
   const [state] = useApplicationContext()
 
-  return safeAccess(state, [USD_PRICE, networkId])
+  return safeAccess(state, [USD_PRICE, chainId])
 }

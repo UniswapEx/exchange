@@ -2,7 +2,7 @@ import React, { useState, useReducer, useEffect } from 'react'
 import ReactGA from 'react-ga'
 
 import { useTranslation } from 'react-i18next'
-import { useWeb3Context } from 'web3-react'
+import { useWeb3React } from '@web3-react/core'
 import { aggregate } from '@makerdao/multicall'
 import * as ls from 'local-storage'
 
@@ -557,7 +557,7 @@ function useBackfill(account, uniswapEXContract) {
   }, [account, oState.ranBackfill])
 
   useEffect(() => {
-    if (isAddress(account) && eState.ranEthBackfill[account] === undefined) {
+    if (isAddress(account) && eState.ranEthBackfill[account] === undefined && uniswapEXContract) {
       setEState({ ranEthBackfill: { ...eState.ranEthBackfill, [account]: BACKFILL_RUNNING } })
       backfillEthOrders(account, uniswapEXContract).then(() => {
         setEState({ ranEthBackfill: { ...eState.ranEthBackfill, [account]: BACKFILL_DONE } })
@@ -693,7 +693,7 @@ function canCoverFees(swapType, fee, value, inputReserveETH, inputReserveToken, 
 
 export default function ExchangePage({ initialCurrency }) {
   const { t } = useTranslation()
-  const { account } = useWeb3Context()
+  const { account } = useWeb3React()
 
   // core swap state
   const [swapState, dispatchSwapState] = useReducer(swapStateReducer, initialCurrency, getInitialSwapState)
@@ -709,6 +709,7 @@ export default function ExchangePage({ initialCurrency }) {
   } = swapState
 
   const uniswapEXContract = useUniswapExContract()
+
   const [inputError, setInputError] = useState()
 
   const stateBackfill = useBackfill(account, uniswapEXContract)
