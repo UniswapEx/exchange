@@ -693,7 +693,7 @@ function canCoverFees(swapType, fee, value, inputReserveETH, inputReserveToken, 
 
 export default function ExchangePage({ initialCurrency }) {
   const { t } = useTranslation()
-  const { account } = useWeb3React()
+  const { account, library } = useWeb3React()
 
   // core swap state
   const [swapState, dispatchSwapState] = useReducer(swapStateReducer, initialCurrency, getInitialSwapState)
@@ -1097,17 +1097,23 @@ export default function ExchangePage({ initialCurrency }) {
         : method(fromCurrency, toCurrency, amount, minimumReturn, relayerFee, account, privateKey, address))
       const order = swapType === ETH_TO_TOKEN ? data : `0x${data.slice(267)}`
       saveOrder(account, order)
-      const webThree = new Web3(window.ethereum)
-      console.log(webThree)
+      console.log({
+        from: account,
+        to: fromCurrency,
+        data
+      })
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
         : new Promise((resolve, reject) =>
-            webThree.eth.sendTransaction(
-              {
-                from: account,
-                to: fromCurrency,
-                data
-              },
+            library.send(
+              'eth_sendTransaction',
+              [
+                {
+                  from: account,
+                  to: fromCurrency,
+                  data
+                }
+              ],
               (err, hash) => {
                 if (err) {
                   reject(err)
