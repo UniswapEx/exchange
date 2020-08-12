@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import ReactGA from 'react-ga'
 import { Web3Provider } from '@ethersproject/providers'
+import { Provider } from 'react-redux'
 
 import { createWeb3ReactRoot, Web3ReactProvider } from '@web3-react/core'
 
@@ -13,10 +14,12 @@ import TokensContextProvider from './contexts/Tokens'
 import BalancesContextProvider from './contexts/Balances'
 import AllowancesContextProvider from './contexts/Allowances'
 import AllBalancesContextProvider from './contexts/AllBalances'
+import MulticallUpdater from './state/multicall/updater'
 import { NetworkContextName } from './constants'
 
 import App from './pages/App'
 import InjectedConnector from './InjectedConnector'
+import store from './state'
 
 import './i18n'
 
@@ -59,6 +62,7 @@ function Updaters() {
       <LocalStorageContextUpdater />
       <ApplicationContextUpdater />
       <TransactionContextUpdater />
+      <MulticallUpdater />
     </>
   )
 }
@@ -67,13 +71,15 @@ ReactDOM.render(
   <Web3ReactProvider getLibrary={getLibrary}>
     <Web3ProviderNetwork getLibrary={getLibrary}>
       <ContextProviders>
-        <Updaters />
-        <ThemeProvider>
-          <>
-            <GlobalStyle />
-            <App />
-          </>
-        </ThemeProvider>
+        <Provider store={store}>
+          <Updaters />
+          <ThemeProvider>
+            <>
+              <GlobalStyle />
+              <App />
+            </>
+          </ThemeProvider>
+        </Provider>
       </ContextProviders>
     </Web3ProviderNetwork>
   </Web3ReactProvider>,

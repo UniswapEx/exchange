@@ -21,10 +21,10 @@ import ArrowDown from '../../assets/svg/SVGArrowDown'
 import Circle from '../../assets/images/circle.svg'
 import SVGClose from '../../assets/svg/SVGClose'
 import SVGDiv from '../../assets/svg/SVGDiv'
-import { amountFormatter } from '../../utils'
-import { useUniswapExContract } from '../../hooks'
+import { amountFormatter, getPairContract } from '../../utils'
+import { useUniswapExContract, useUniswapV2Contracts } from '../../hooks'
 import { Spinner } from '../../theme'
-import { useTokenDetails } from '../../contexts/Tokens'
+import { useTokenDetails, WETH } from '../../contexts/Tokens'
 import {
   useTransactionAdder,
   ACTION_PLACE_ORDER,
@@ -36,6 +36,7 @@ import {
 import { useAddressBalance, useExchangeReserves } from '../../contexts/Balances'
 import { useFetchAllBalances } from '../../contexts/AllBalances'
 import { useAddressAllowance } from '../../contexts/Allowances'
+import { useTradeExactIn } from '../../hooks/trade'
 
 import './ExchangePage.css'
 
@@ -335,8 +336,55 @@ function swapStateReducer(state, action) {
   }
 }
 
-function getExchangeRate(inputValue, inputDecimals, outputValue, outputDecimals, invert = false) {
+function getExchangeRate(
+  inputAddress,
+  outputAddress,
+  inputValue,
+  inputDecimals,
+  outputValue,
+  outputDecimals,
+  invert = false
+) {
   try {
+    // note that you may want/need to handle this async code differently,
+    // for example if top-level await is not an option
+    if (
+      inputValue &&
+      (inputDecimals || inputDecimals === 0) &&
+      outputValue &&
+      (outputDecimals || outputDecimals === 0)
+    ) {
+      const { factoryV2 } = uniswapV2Contracts
+      const token0 = inputAddress <= outputAddress ? inputAddress : outputAddress
+      const token1 = inputAddress <= outputAddress ? outputAddress : inputAddress
+
+      // factoryV2.getPair(token0, token1).then(async pairAddress => {
+      //   const pair = getPairContract(pairAddress, globalLibrary, globalAccount)
+      //   // Compute limit for uniswap trade
+      //   const [reserve0, reserve1] = await pair.getReserves()
+
+      //   // Optimal amounts for uniswap trade
+      //   let reserveIn
+      //   let reserveOut
+
+      //   if (inputAddress == token0) {
+      //     reserveIn = reserve0
+      //     reserveOut = reserve1
+      //   } else {
+      //     reserveIn = reserve1
+      //     reserveOut = reserve0
+      //   }
+
+      //   if (inputValue > 0 && reserveIn > 0 && reserveOut > 0) {
+      //     const amountInWithFee = inputValue.mul(997)
+      //     const numerator = amountInWithFee.mul(reserveIn)
+      //     const denominator = reserveOut.mul(1000).add(amountInWithFee)
+      //     console.log('aaaa', numerator / denominator)
+      //   }
+      //   console.log(inputValue, reserveIn, reserveOut)
+      // })
+    }
+
     if (
       inputValue &&
       (inputDecimals || inputDecimals === 0) &&
@@ -359,7 +407,9 @@ function getExchangeRate(inputValue, inputDecimals, outputValue, outputDecimals,
           .div(ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(outputDecimals)))
       }
     }
-  } catch {}
+  } catch (e) {
+    console.log(e.message)
+  }
 }
 
 function applyExchangeRateTo(inputValue, exchangeRate, inputDecimals, outputDecimals, invert = false) {
@@ -415,6 +465,8 @@ function flipRate(rate) {
 
 function getMarketRate(
   swapType,
+  inputCurrency,
+  outputCurrency,
   inputReserveETH,
   inputReserveToken,
   inputDecimals,
@@ -424,13 +476,35 @@ function getMarketRate(
   invert = false
 ) {
   if (swapType === ETH_TO_TOKEN) {
-    return getExchangeRate(outputReserveETH, 18, outputReserveToken, outputDecimals, invert)
+    return getExchangeRate(
+      inputCurrency,
+      outputCurrency,
+      outputReserveETH,
+      18,
+      outputReserveToken,
+      outputDecimals,
+      invert
+    )
   } else if (swapType === TOKEN_TO_ETH) {
-    return getExchangeRate(inputReserveToken, inputDecimals, inputReserveETH, 18, invert)
+    return getExchangeRate(inputCurrency, outputCurrency, inputReserveToken, inputDecimals, inputReserveETH, 18, invert)
   } else if (swapType === TOKEN_TO_TOKEN) {
     const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(18))
-    const firstRate = getExchangeRate(inputReserveToken, inputDecimals, inputReserveETH, 18)
-    const secondRate = getExchangeRate(outputReserveETH, 18, outputReserveToken, outputDecimals)
+    const firstRate = getExchangeRate(
+      inputCurrency,
+      outputCurrency,
+      inputReserveToken,
+      inputDecimals,
+      inputReserveETH,
+      18
+    )
+    const secondRate = getExchangeRate(
+      inputCurrency,
+      outputCurrency,
+      outputReserveETH,
+      18,
+      outputReserveToken,
+      outputDecimals
+    )
     try {
       return !!(firstRate && secondRate) ? firstRate.mul(secondRate).div(factor) : undefined
     } catch {}
@@ -669,7 +743,16 @@ function isEthOrder(order) {
   return order.fromToken.toLowerCase() === ETH_ADDRESS.toLowerCase()
 }
 
-function canCoverFees(swapType, fee, value, inputReserveETH, inputReserveToken, inputDecimals) {
+function canCoverFees(
+  swapType,
+  fee,
+  inputCurrency,
+  outputCurrency,
+  value,
+  inputReserveETH,
+  inputReserveToken,
+  inputDecimals
+) {
   if (!value || swapType === null) {
     return true
   }
@@ -681,7 +764,14 @@ function canCoverFees(swapType, fee, value, inputReserveETH, inputReserveToken, 
     ethValue = value
   } else {
     const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals))
-    const ethRate = getExchangeRate(inputReserveToken, inputDecimals, inputReserveETH, 18)
+    const ethRate = getExchangeRate(
+      inputCurrency,
+      outputCurrency,
+      inputReserveToken,
+      inputDecimals,
+      inputReserveETH,
+      18
+    )
     if (!ethRate) {
       return true
     }
@@ -691,10 +781,17 @@ function canCoverFees(swapType, fee, value, inputReserveETH, inputReserveToken, 
   return ethValue.gt(orderFee)
 }
 
+let uniswapV2Contracts
+let globalAccount
+let globalLibrary
+let globalChainId
+
 export default function ExchangePage({ initialCurrency }) {
   const { t } = useTranslation()
-  const { account, library } = useWeb3React()
-
+  const { account, library, chainId } = useWeb3React()
+  globalAccount = account
+  globalLibrary = library
+  globalChainId = chainId
   // core swap state
   const [swapState, dispatchSwapState] = useReducer(swapStateReducer, initialCurrency, getInitialSwapState)
 
@@ -709,6 +806,7 @@ export default function ExchangePage({ initialCurrency }) {
   } = swapState
 
   const uniswapEXContract = useUniswapExContract()
+  uniswapV2Contracts = useUniswapV2Contracts()
 
   const [inputError, setInputError] = useState()
 
@@ -786,6 +884,8 @@ export default function ExchangePage({ initialCurrency }) {
       outputValueParsed = independentValueParsed
       outputValueFormatted = independentValue
       rateRaw = getExchangeRate(
+        inputCurrency,
+        outputCurrency,
         inputValueParsed,
         inputDecimals,
         outputValueParsed,
@@ -819,6 +919,8 @@ export default function ExchangePage({ initialCurrency }) {
       outputValueParsed = dependentValue
       outputValueFormatted = dependentValueFormatted
       rateRaw = getExchangeRate(
+        inputCurrency,
+        outputCurrency,
         inputValueParsed,
         inputDecimals,
         outputValueParsed,
@@ -1023,6 +1125,8 @@ export default function ExchangePage({ initialCurrency }) {
 
   const marketRate = getMarketRate(
     swapType,
+    inputCurrency,
+    outputCurrency,
     inputReserveETH,
     inputReserveToken,
     inputDecimals,
@@ -1046,6 +1150,8 @@ export default function ExchangePage({ initialCurrency }) {
   const enoughAmountToCoverFees = canCoverFees(
     swapType,
     fee,
+    inputCurrency,
+    outputCurrency,
     independentField === INPUT ? independentValueParsed : inputValueParsed,
     inputReserveETH,
     inputReserveToken,
@@ -1134,6 +1240,13 @@ export default function ExchangePage({ initialCurrency }) {
   const [customSlippageError] = useState('')
 
   const allBalances = useFetchAllBalances()
+
+  const bestTradeExactIn = useTradeExactIn(
+    inputCurrency,
+    independentField === INPUT ? independentValueParsed : inputValue,
+    outputCurrency
+  )
+
   return (
     <>
       <CurrencyInputPanel

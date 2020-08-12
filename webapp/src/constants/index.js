@@ -1,3 +1,5 @@
+import { Token, ChainId, WETH } from 'uniswap-v2-sdk'
+
 import { fortmatic, injected, portis, walletconnect, walletlink } from '../connectors'
 
 export const FACTORY_ADDRESSES = {
@@ -10,6 +12,37 @@ export const FACTORY_ADDRESSES = {
 export const UNISWAPEX_ADDRESSES = {
   1: '0xbd2a43799b83d9d0ff56b85d4c140bce3d1d1c6c',
   3: '0xbbed73a556c48a6517f4f92325eb34ef40127922'
+}
+
+export const UNISWAPV2_ADDRESSES = {
+  1: {
+    FACTORY: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'
+  },
+  3: {
+    FACTORY: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'
+  }
+}
+
+export const ROUTER_ADDRESS = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
+
+export const DAI = new Token(ChainId.MAINNET, '0x6B175474E89094C44Da98b954EedeAC495271d0F', 18, 'DAI', 'Dai Stablecoin')
+export const USDC = new Token(ChainId.MAINNET, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C')
+export const USDT = new Token(ChainId.MAINNET, '0xdAC17F958D2ee523a2206206994597C13D831ec7', 6, 'USDT', 'Tether USD')
+export const COMP = new Token(ChainId.MAINNET, '0xc00e94Cb662C3520282E6f5717214004A7f26888', 18, 'COMP', 'Compound')
+export const MKR = new Token(ChainId.MAINNET, '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2', 18, 'MKR', 'Maker')
+
+const WETH_ONLY = {
+  [ChainId.MAINNET]: [WETH[ChainId.MAINNET]],
+  [ChainId.ROPSTEN]: [WETH[ChainId.ROPSTEN]],
+  [ChainId.RINKEBY]: [WETH[ChainId.RINKEBY]],
+  [ChainId.GÖRLI]: [WETH[ChainId.GÖRLI]],
+  [ChainId.KOVAN]: [WETH[ChainId.KOVAN]]
+}
+
+// used to construct intermediary pairs for trading
+export const BASES_TO_CHECK_TRADES_AGAINST = {
+  ...WETH_ONLY,
+  [ChainId.MAINNET]: [...WETH_ONLY[ChainId.MAINNET], DAI, USDC, USDT, COMP, MKR]
 }
 
 export const NetworkContextName = 'NETWORK'
@@ -82,4 +115,12 @@ export const SUPPORTED_WALLETS = {
       mobile: true
     }
   }
+}
+
+export const MULTICALL_NETWORKS = {
+  [ChainId.MAINNET]: '0xeefBa1e63905eF1D7ACbA5a8513c70307C1cE441',
+  [ChainId.ROPSTEN]: '0x53C43764255c17BD724F74c4eF150724AC50a3ed',
+  [ChainId.KOVAN]: '0x2cc8688C5f75E365aaEEb4ea8D6a480405A48D2A',
+  [ChainId.RINKEBY]: '0x42Ad527de7d4e9d9d011aC45B31D8551f8Fe9821',
+  [ChainId.GÖRLI]: '0x77dCa2C955b15e9dE4dbBCf1246B4B85b651e50e'
 }

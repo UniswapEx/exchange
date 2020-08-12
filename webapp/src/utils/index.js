@@ -7,7 +7,9 @@ import EXCHANGE_ABI from '../constants/abis/exchange'
 import ERC20_ABI from '../constants/abis/erc20'
 import ERC20_BYTES32_ABI from '../constants/abis/erc20_bytes32'
 import UNISWAPEX_ABI from '../constants/abis/uniswapEX'
-import { FACTORY_ADDRESSES, UNISWAPEX_ADDRESSES } from '../constants'
+import FACTORY_V2_ABI from '../constants/abis/factoryV2.json'
+import PAIR_ABI from '../constants/abis/pair.json'
+import { FACTORY_ADDRESSES, UNISWAPEX_ADDRESSES, UNISWAPV2_ADDRESSES } from '../constants'
 import { formatFixed } from '@uniswap/sdk'
 
 import UncheckedJsonRpcSigner from './signer'
@@ -119,6 +121,14 @@ export function getContract(address, ABI, library, account) {
 // account is optional
 export function getUniswapExContract(chainId, library, account) {
   return getContract(UNISWAPEX_ADDRESSES[chainId], UNISWAPEX_ABI, library, account)
+}
+
+export function getUniswapV2Contracts(chainId, library, account) {
+  return { factoryV2: getContract(UNISWAPV2_ADDRESSES[chainId].FACTORY, FACTORY_V2_ABI, library, account) }
+}
+
+export function getPairContract(address, library, account) {
+  return getContract(address, PAIR_ABI, library, account)
 }
 
 // account is optional

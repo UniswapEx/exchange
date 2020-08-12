@@ -3,9 +3,17 @@ import { useWeb3React } from '@web3-react/core'
 import { isMobile } from 'react-device-detect'
 
 import ERC20_ABI from '../constants/abis/erc20'
-import { getContract, getFactoryContract, getExchangeContract, getUniswapExContract, isAddress } from '../utils'
+import MULTICALL_ABI from '../constants/abis/multicall'
+import {
+  getContract,
+  getFactoryContract,
+  getExchangeContract,
+  getUniswapExContract,
+  getUniswapV2Contracts,
+  isAddress
+} from '../utils'
 import copy from 'copy-to-clipboard'
-import { NetworkContextName } from '../constants'
+import { NetworkContextName, MULTICALL_NETWORKS } from '../constants'
 import { injected } from '../connectors'
 
 // modified from https://usehooks.com/useDebounce/
@@ -86,6 +94,18 @@ export function useUniswapExContract(withSignerIfPossible = true) {
   return useMemo(() => {
     try {
       return getUniswapExContract(chainId, library, withSignerIfPossible ? account : undefined)
+    } catch (e) {
+      return null
+    }
+  }, [chainId, library, withSignerIfPossible, account])
+}
+
+export function useUniswapV2Contracts(withSignerIfPossible = true) {
+  const { chainId, library, account } = useActiveWeb3React()
+
+  return useMemo(() => {
+    try {
+      return getUniswapV2Contracts(chainId, library, withSignerIfPossible ? account : undefined)
     } catch (e) {
       return null
     }
@@ -278,4 +298,21 @@ export function usePrevious(value) {
 
   // Return previous value (happens before update in useEffect above)
   return ref.current
+}
+
+export function useMulticallContract() {
+  const { chainId } = useActiveWeb3React()
+  return useContract(chainId && MULTICALL_NETWORKS[chainId], MULTICALL_ABI, false)
+}
+
+export function useBlockNumber() {
+  const { library } = useActiveWeb3React()
+
+  const [blockNumber, setBlockNumber] = useState(-1)
+
+  if (library) {
+    library.getBlockNumber().then(setBlockNumber)
+  }
+
+  return blockNumber
 }

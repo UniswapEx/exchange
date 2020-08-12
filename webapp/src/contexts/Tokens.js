@@ -27,6 +27,11 @@ const ETH = {
   }
 }
 
+export const WETH = {
+  1: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+  3: '0xc778417e063141139fce010982780140aa0cd5ab'
+}
+
 const INITIAL_TOKENS_CONTEXT = {
   1: {
     '0xB6eD7644C69416d67B522e20bC294A9a9B405B31': {
@@ -762,7 +767,7 @@ export function useTokenDetails(tokenAddress) {
     }
   }, [tokenAddress, name, symbol, decimals, exchangeAddress, chainId, library, update])
 
-  return { name, symbol, decimals, exchangeAddress }
+  return { name, symbol, decimals, exchangeAddress, chainId }
 }
 
 export function useAllTokenDetails(requireExchange = true) {
