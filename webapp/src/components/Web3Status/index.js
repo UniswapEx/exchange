@@ -15,9 +15,7 @@ import WalletConnectIcon from '../../assets/images/walletConnectIcon.svg'
 import CoinbaseWalletIcon from '../../assets/images/coinbaseWalletIcon.svg'
 
 import { shortenAddress } from '../../utils'
-import { NetworkContextName } from '../../constants'
 import { injected, walletconnect, walletlink, fortmatic, portis } from '../../connectors'
-import Loader from '../Loader'
 
 const IconWrapper = styled.div`
   ${({ theme }) => theme.flexColumnNoWrap};
@@ -112,19 +110,9 @@ const NetworkIcon = styled(Activity)`
   height: 16px;
 `
 
-// we want the latest one to come first, so return negative if a is after b
-function newTranscationsFirst(a, b) {
-  return b.addedTime - a.addedTime
-}
-
-function recentTransactionsOnly(a) {
-  return new Date().getTime() - a.addedTime < 86400000
-}
-
 export default function Web3Status() {
   const { t } = useTranslation()
-  const { active, account, connector, error } = useWeb3React()
-  const contextNetwork = useWeb3React(NetworkContextName)
+  const { account, connector, error } = useWeb3React()
 
   const { ENSName } = useENSName(account)
 

@@ -12,8 +12,6 @@ import PAIR_ABI from '../constants/abis/pair.json'
 import { FACTORY_ADDRESSES, UNISWAPEX_ADDRESSES, UNISWAPV2_ADDRESSES } from '../constants'
 import { formatFixed } from '@uniswap/sdk'
 
-import UncheckedJsonRpcSigner from './signer'
-
 export const ERROR_CODES = ['TOKEN_NAME', 'TOKEN_SYMBOL', 'TOKEN_DECIMALS'].reduce(
   (accumulator, currentValue, currentIndex) => {
     accumulator[currentValue] = currentIndex

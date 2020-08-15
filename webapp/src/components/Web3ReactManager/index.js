@@ -1,38 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useWeb3React } from '@web3-react/core'
-import styled from 'styled-components'
-import { useTranslation } from 'react-i18next'
 import { useEagerConnect, useInactiveListener } from '../../hooks'
 
-import { Spinner } from '../../theme'
-import Circle from '../../assets/images/circle.svg'
 import { NetworkContextName } from '../../constants'
 import { network } from '../../connectors'
-import Loader from '../Loader'
-
-const MessageWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 20rem;
-`
-
-const Message = styled.h2`
-  color: ${({ theme }) => theme.uniswapPink};
-`
-
-const SpinnerWrapper = styled(Spinner)`
-  font-size: 4rem;
-
-  svg {
-    path {
-      color: ${({ theme }) => theme.uniswapPink};
-    }
-  }
-`
 
 export default function Web3ReactManager({ children }) {
-  const { t } = useTranslation()
   const { active } = useWeb3React()
   const { active: networkActive, error: networkError, activate: activateNetwork } = useWeb3React(NetworkContextName)
 
@@ -50,7 +23,7 @@ export default function Web3ReactManager({ children }) {
   useInactiveListener(!triedEager)
 
   // handle delayed loader state
-  const [showLoader, setShowLoader] = useState(false)
+  const [, setShowLoader] = useState(false)
   useEffect(() => {
     const timeout = setTimeout(() => {
       setShowLoader(true)
@@ -59,7 +32,7 @@ export default function Web3ReactManager({ children }) {
     return () => {
       clearTimeout(timeout)
     }
-  }, [])
+  }, [setShowLoader])
 
   // on page load, do nothing until we've tried to connect to the injected connector
   if (!triedEager) {

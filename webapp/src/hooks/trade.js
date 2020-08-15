@@ -81,9 +81,9 @@ export function useTradeExactIn(currencyAddressIn, currencyValueIn, currencyAddr
           currencyOutDetail.name
         )
     : undefined
-  console.log(currencyAddressIn === 'ETH' ? currencyValueIn / 1e18 : currencyValueIn / 10 ** currencyIn.decmals)
+
   const currencyAmountIn = tryParseAmount(
-    currencyAddressIn === 'ETH' ? currencyValueIn / 1e18 : currencyValueIn / 10 ** currencyIn.decmals,
+    currencyValueIn,
     currencyAddressIn
       ? currencyAddressIn === 'ETH'
         ? ETHER
@@ -95,12 +95,10 @@ export function useTradeExactIn(currencyAddressIn, currencyValueIn, currencyAddr
 
   return useMemo(() => {
     if (currencyAmountIn && currencyOut && allowedPairs.length > 0) {
-      console.log('a', currencyAmountIn)
       const tradeRes = Trade.bestTradeExactIn(allowedPairs, currencyAmountIn, currencyOut, {
         maxHops: 3,
         maxNumResults: 1
       })[0]
-      if (tradeRes) console.log('bestTradeExactIn', tradeRes, tradeRes.outputAmount.toExact())
 
       return tradeRes ? tradeRes : null
     }
@@ -114,7 +112,6 @@ export function useTradeExactIn(currencyAddressIn, currencyValueIn, currencyAddr
 export function useTradeExactOut(currencyInAddress, currentOutAddress, currencyAmountOut) {
   const allowedPairs = useAllCommonPairs(currencyIn, currencyAmountOut.currency)
   const currencyIn = useTokenDetails(currencyInAddress)
-  const currencyOut = useTokenDetails(currentOutAddress)
 
   return useMemo(() => {
     if (currencyIn && currencyAmountOut && allowedPairs.length > 0) {

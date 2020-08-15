@@ -123,8 +123,6 @@ export default function WalletModal({ toggleWalletModal, isOpen, ENSName }) {
 
   const [pendingError, setPendingError] = useState()
 
-  const previousAccount = usePrevious(account)
-
   // always reset to account view
   useEffect(() => {
     if (isOpen) {
@@ -182,7 +180,7 @@ export default function WalletModal({ toggleWalletModal, isOpen, ENSName }) {
     fortmatic.on(OVERLAY_READY, () => {
       toggleWalletModal()
     })
-  }, [])
+  }, [toggleWalletModal])
 
   // get wallets user can switch too, depending on device/browser
   function getOptions() {

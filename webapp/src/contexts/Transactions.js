@@ -222,6 +222,8 @@ export function useAllPendingOrders() {
         return false
       } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_PLACE_ORDER) {
         return true
+      } else {
+        return false
       }
     })
     .map(hash => allTransactions[hash][RESPONSE][CUSTOM_DATA].order)
@@ -237,6 +239,8 @@ export function useAllPendingCancelOrders() {
         return false
       } else if (allTransactions[hash][RESPONSE][CUSTOM_DATA].action === ACTION_CANCEL_ORDER) {
         return true
+      } else {
+        return false
       }
     })
     .map(hash => allTransactions[hash][RESPONSE][CUSTOM_DATA].order)

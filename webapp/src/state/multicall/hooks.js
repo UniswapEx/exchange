@@ -1,18 +1,8 @@
-import { Interface, FunctionFragment } from '@ethersproject/abi'
-import { BigNumber } from '@ethersproject/bignumber'
-import { Contract } from '@ethersproject/contracts'
 import { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useActiveWeb3React, useBlockNumber } from '../../hooks'
 
-import {
-  addMulticallListeners,
-  Call,
-  removeMulticallListeners,
-  parseCallKey,
-  toCallKey,
-  ListenerOptions
-} from './actions'
+import { addMulticallListeners, removeMulticallListeners, parseCallKey, toCallKey } from './actions'
 
 function isMethodArg(x) {
   return ['string', 'number'].indexOf(typeof x) !== -1

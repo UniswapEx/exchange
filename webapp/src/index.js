@@ -18,7 +18,6 @@ import MulticallUpdater from './state/multicall/updater'
 import { NetworkContextName } from './constants'
 
 import App from './pages/App'
-import InjectedConnector from './InjectedConnector'
 import store from './state'
 
 import './i18n'

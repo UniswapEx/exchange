@@ -1,11 +1,8 @@
-import React, { useCallback, useContext } from 'react'
-import styled, { ThemeContext } from 'styled-components'
+import React from 'react'
+import styled from 'styled-components'
 import { useActiveWeb3React } from '../../hooks'
-// import { clearAllTransactions } from '../../state/transactions/actions'
 import { shortenAddress } from '../../utils'
-// import { AutoRow } from '../Row'
 import Copy from './Copy'
-import Transaction from './Transaction'
 
 import { SUPPORTED_WALLETS } from '../../constants'
 import { ReactComponent as Close } from '../../assets/images/x.svg'
@@ -17,7 +14,6 @@ import FortmaticIcon from '../../assets/images/fortmaticIcon.png'
 import PortisIcon from '../../assets/images/portisIcon.png'
 import Identicon from '../Identicon'
 import { ExternalLink as LinkIcon } from 'react-feather'
-import { LinkStyledButton } from '../../theme'
 
 import { Link } from '../../theme'
 
@@ -92,22 +88,6 @@ const YourAccount = styled.div`
   }
 `
 
-const LowerSection = styled.div`
-  ${({ theme }) => theme.flexColumnNoWrap}
-  padding: 1.5rem;
-  flex-grow: 1;
-  overflow: auto;
-  background-color: ${({ theme }) => theme.bg2};
-  border-bottom-left-radius: 25px;
-  border-bottom-right-radius: 20px;
-
-  h5 {
-    margin: 0;
-    font-weight: 400;
-    color: ${({ theme }) => theme.text3};
-  }
-`
-
 const AccountControl = styled.div`
   display: flex;
   justify-content: space-between;
@@ -179,10 +159,6 @@ const IconWrapper = styled.div`
   `};
 `
 
-const TransactionListWrapper = styled.div`
-  ${({ theme }) => theme.flexColumnNoWrap};
-`
-
 const WalletAction = styled.button`
   width: fit-content;
   font-weight: 400;
@@ -199,25 +175,8 @@ const MainWalletAction = styled(WalletAction)`
   color: ${({ theme }) => theme.primary1};
 `
 
-function renderTransactions(transactions) {
-  return (
-    <TransactionListWrapper>
-      {transactions.map((hash, i) => {
-        return <Transaction key={i} hash={hash} />
-      })}
-    </TransactionListWrapper>
-  )
-}
-
-export default function AccountDetails({
-  toggleWalletModal,
-  pendingTransactions,
-  confirmedTransactions,
-  ENSName,
-  openOptions
-}) {
+export default function AccountDetails({ toggleWalletModal, ENSName, openOptions }) {
   const { chainId, account, connector } = useActiveWeb3React()
-  const theme = useContext(ThemeContext)
 
   function formatConnectorName() {
     const { ethereum } = window

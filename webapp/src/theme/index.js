@@ -82,8 +82,6 @@ const theme = darkMode => ({
   // css snippets
   flexColumnNoWrap,
   flexRowNoWrap,
-  white,
-  black,
 
   // text
   text1: darkMode ? '#FFFFFF' : '#000000',
