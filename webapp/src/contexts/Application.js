@@ -85,6 +85,7 @@ export function Updater() {
   }, [library, connectorName])
 
   // update usd price
+  // @TODO: remove this
   useEffect(() => {
     if (library) {
       let stale = false

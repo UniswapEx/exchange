@@ -110,8 +110,8 @@ export function useTradeExactIn(currencyAddressIn, currencyValueIn, currencyAddr
  * Returns the best trade for the token in to the exact amount of token out
  */
 export function useTradeExactOut(currencyInAddress, currentOutAddress, currencyAmountOut) {
-  const allowedPairs = useAllCommonPairs(currencyIn, currencyAmountOut.currency)
   const currencyIn = useTokenDetails(currencyInAddress)
+  const allowedPairs = useAllCommonPairs(currencyIn, currencyAmountOut.currency)
 
   return useMemo(() => {
     if (currencyIn && currencyAmountOut && allowedPairs.length > 0) {

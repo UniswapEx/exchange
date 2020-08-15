@@ -3,7 +3,6 @@ import { useWeb3React } from '@web3-react/core'
 
 import { safeAccess, isAddress, getEtherBalance, getTokenBalance } from '../utils'
 import { useBlockNumber } from './Application'
-import { useTokenDetails } from './Tokens'
 
 const UPDATE = 'UPDATE'
 
@@ -86,13 +85,4 @@ export function useAddressBalance(address, tokenAddress) {
   }, [address, tokenAddress, value, blockNumber, globalBlockNumber, chainId, library, update])
 
   return value
-}
-
-export function useExchangeReserves(tokenAddress) {
-  const { exchangeAddress } = useTokenDetails(tokenAddress)
-
-  const reserveETH = useAddressBalance(exchangeAddress, 'ETH')
-  const reserveToken = useAddressBalance(exchangeAddress, tokenAddress)
-
-  return { reserveETH, reserveToken }
 }

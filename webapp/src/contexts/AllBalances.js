@@ -1,12 +1,10 @@
 import React, { createContext, useContext, useReducer, useMemo, useCallback } from 'react'
-import { ethers } from 'ethers'
-import { getTokenReserves, getMarketDetails, BigNumber } from '@uniswap/sdk'
+import { BigNumber } from '@uniswap/sdk'
 import { useWeb3React } from '@web3-react/core'
 
 import { safeAccess, isAddress, getEtherBalance, getTokenBalance } from '../utils'
 import { useAllTokenDetails } from './Tokens'
 
-const ZERO = ethers.utils.bigNumberify(0)
 const ONE = new BigNumber(1)
 
 const UPDATE = 'UPDATE'
@@ -78,21 +76,6 @@ export function useFetchAllBalances() {
                 console.error(e.message)
                 return null
               })
-
-              // only get values for tokens with positive balances
-              if (!!balance && balance.gt(ZERO)) {
-                const tokenReserves = await getTokenReserves(k, library.provider).catch(e => {
-                  console.error(e.message)
-                  return null
-                })
-
-                if (!!tokenReserves) {
-                  const marketDetails = getMarketDetails(tokenReserves)
-                  if (marketDetails.marketRate && marketDetails.marketRate.rate) {
-                    ethRate = marketDetails.marketRate.rate
-                  }
-                }
-              }
             }
 
             return (newBalances[k] = { balance, ethRate })

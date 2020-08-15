@@ -468,18 +468,27 @@ function CurrencySelectModal({ isOpen, onDismiss, onTokenSelect, allBalances }) 
           return aSymbol === bSymbol ? 0 : aSymbol === 'ETH'.toLowerCase() ? -1 : 1
         }
 
-        if (usdAmounts[a] && !usdAmounts[b]) {
-          return -1
-        } else if (usdAmounts[b] && !usdAmounts[a]) {
-          return 1
+        if (aSymbol === 'WETH'.toLowerCase() || bSymbol === 'WETH'.toLowerCase()) {
+          return aSymbol === bSymbol ? 0 : aSymbol === 'WETH'.toLowerCase() ? -1 : 1
         }
 
-        // check for balance - sort by value
-        if (usdAmounts[a] && usdAmounts[b]) {
-          const aUSD = usdAmounts[a]
-          const bUSD = usdAmounts[b]
+        if (allBalances) {
+          const aBalance = allBalances[a] ? allBalances[a].balance : null
+          const bBalance = allBalances[b] ? allBalances[b].balance : null
 
-          return aUSD.gt(bUSD) ? -1 : aUSD.lt(bUSD) ? 1 : 0
+          if (aBalance && !bBalance) {
+            return -1
+          } else if (!aBalance && bBalance) {
+            return 1
+          }
+
+          if (aBalance && aBalance) {
+            if (aBalance.gt(bBalance)) {
+              return -1
+            } else {
+              return 1
+            }
+          }
         }
 
         return aSymbol < bSymbol ? -1 : aSymbol > bSymbol ? 1 : 0

@@ -15,7 +15,6 @@ import Web3 from 'web3'
 import { Button } from '../../theme'
 import CurrencyInputPanel, { CurrencySelect, Aligner, StyledTokenName } from '../CurrencyInputPanel'
 import OversizedPanel from '../OversizedPanel'
-import TransactionDetails from '../TransactionDetails'
 import TokenLogo from '../TokenLogo'
 import ArrowDown from '../../assets/svg/SVGArrowDown'
 import Circle from '../../assets/images/circle.svg'
@@ -33,7 +32,7 @@ import {
   useAllPendingCancelOrders,
   useOrderPendingState
 } from '../../contexts/Transactions'
-import { useAddressBalance, useExchangeReserves } from '../../contexts/Balances'
+import { useAddressBalance } from '../../contexts/Balances'
 import { useFetchAllBalances } from '../../contexts/AllBalances'
 import { useAddressAllowance } from '../../contexts/Allowances'
 import { useTradeExactIn } from '../../hooks/trade'
@@ -66,10 +65,6 @@ const RATE_OP_DIV = '/'
 
 // Addresses
 const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
-
-// Order fee
-const ORDER_FEE = '6000000000000000' // 0,006 ETH
-const ORDER_MIN_FEE = 300000 * 1e9 // Fee with 1 GWEI
 
 const DownArrowBackground = styled.div`
   ${({ theme }) => theme.flexRowNoWrap}
@@ -230,25 +225,6 @@ function getSwapType(inputCurrency, outputCurrency) {
   } else {
     return TOKEN_TO_TOKEN
   }
-}
-
-// this mocks the getInputPrice function, and calculates the required output
-// updateInputValue is hack to detach output input from output
-function calculateEtherTokenOutputFromInput(inputAmount, inputReserve, outputReserve, updateInputValue = true) {
-  const inputAmountWithFee = inputAmount.mul(ethers.utils.bigNumberify(997))
-  const numerator = inputAmountWithFee.mul(outputReserve)
-  const denominator = inputReserve.mul(ethers.utils.bigNumberify(1000)).add(inputAmountWithFee)
-  if (updateInputValue) {
-    inputValue = inputAmount
-  }
-  return numerator.div(denominator)
-}
-
-// this mocks the getOutputPrice function, and calculates the required input
-function calculateEtherTokenInputFromOutput(outputAmount, inputReserve, outputReserve) {
-  const numerator = inputReserve.mul(outputAmount).mul(ethers.utils.bigNumberify(1000))
-  const denominator = outputReserve.sub(outputAmount).mul(ethers.utils.bigNumberify(997))
-  return numerator.div(denominator).add(ethers.constants.One)
 }
 
 function getInitialSwapState(outputCurrency) {
@@ -586,6 +562,8 @@ async function fetchUserOrders(account, uniswapEXContract) {
 function useStoredOrders(account, uniswapEXContract, deps = []) {
   const [state, setState] = useState({ openOrders: [], allOrders: [] })
 
+  const depsString = JSON.stringify(deps)
+
   useEffect(() => {
     console.log(`Requesting load orders from storage`)
     if (isAddress(account)) {
@@ -602,7 +580,7 @@ function useStoredOrders(account, uniswapEXContract, deps = []) {
         stale = true
       }
     }
-  }, [...deps, account, uniswapEXContract])
+  }, [depsString, account, uniswapEXContract])
 
   return state
 }
@@ -648,37 +626,6 @@ function decodeOrder(data) {
 
 function isEthOrder(order) {
   return order.fromToken.toLowerCase() === ETH_ADDRESS.toLowerCase()
-}
-
-function canCoverFees(
-  swapType,
-  fee,
-  inputCurrency,
-  outputCurrency,
-  value,
-  inputReserveETH,
-  inputReserveToken,
-  inputDecimals
-) {
-  if (!value || swapType === null) {
-    return true
-  }
-
-  const orderFee = ethers.utils.bigNumberify(fee.toString())
-  let ethValue
-
-  if (swapType === ETH_TO_TOKEN) {
-    ethValue = value
-  } else {
-    const factor = ethers.utils.bigNumberify(10).pow(ethers.utils.bigNumberify(inputDecimals))
-    const ethRate = getExchangeRate(inputReserveToken, inputDecimals, inputReserveETH, 18)
-    if (!ethRate) {
-      return true
-    }
-    ethValue = value.mul(ethRate).div(factor)
-  }
-
-  return ethValue.gt(orderFee)
 }
 
 export default function ExchangePage({ initialCurrency }) {
@@ -729,10 +676,6 @@ export default function ExchangePage({ initialCurrency }) {
   // get input allowance
   const inputAllowance = useAddressAllowance(account, inputCurrency, inputExchangeAddress)
 
-  // fetch reserves for each of the currency types
-  const { reserveETH: inputReserveETH, reserveToken: inputReserveToken } = useExchangeReserves(inputCurrency)
-  const { reserveETH: outputReserveETH, reserveToken: outputReserveToken } = useExchangeReserves(outputCurrency)
-
   // get balances for each of the currency types
   const inputBalance = useAddressBalance(account, inputCurrency)
   const outputBalance = useAddressBalance(account, outputCurrency)
@@ -765,6 +708,12 @@ export default function ExchangePage({ initialCurrency }) {
     independentField === INPUT ? independentValue : inputValueFormatted,
     outputCurrency
   )
+
+  if (bestTradeExactIn) {
+    inputValue = ethers.utils.bigNumberify(
+      ethers.utils.parseUnits(bestTradeExactIn.inputAmount.toExact(), inputDecimals)
+    )
+  }
 
   switch (independentField) {
     case OUTPUT:
@@ -871,140 +820,12 @@ export default function ExchangePage({ initialCurrency }) {
 
   // calculate dependent value
   useEffect(() => {
-    const amount = independentValueParsed
-
     if (independentField === OUTPUT || independentField === RATE) {
       return () => {
         dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: null })
       }
     }
-
-    if (swapType === ETH_TO_TOKEN) {
-      const reserveETH = outputReserveETH
-      const reserveToken = outputReserveToken
-
-      if (amount && reserveETH && reserveToken) {
-        try {
-          const calculatedDependentValue =
-            independentField === INPUT
-              ? calculateEtherTokenOutputFromInput(amount, reserveETH, reserveToken)
-              : calculateEtherTokenInputFromOutput(amount, reserveETH, reserveToken)
-
-          if (calculatedDependentValue.lte(ethers.constants.Zero)) {
-            throw Error()
-          }
-
-          dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: calculatedDependentValue })
-        } catch {
-          setIndependentError(t('insufficientLiquidity'))
-        }
-        return () => {
-          dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: '' })
-        }
-      }
-    } else if (swapType === TOKEN_TO_ETH) {
-      const reserveETH = inputReserveETH
-      const reserveToken = inputReserveToken
-
-      if (amount && reserveETH && reserveToken) {
-        try {
-          const calculatedDependentValue =
-            independentField === INPUT
-              ? calculateEtherTokenOutputFromInput(amount, reserveToken, reserveETH)
-              : calculateEtherTokenInputFromOutput(amount, reserveToken, reserveETH)
-
-          if (calculatedDependentValue.lte(ethers.constants.Zero)) {
-            throw Error()
-          }
-
-          dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: calculatedDependentValue })
-        } catch {
-          setIndependentError(t('insufficientLiquidity'))
-        }
-        return () => {
-          dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: '' })
-        }
-      }
-    } else if (swapType === TOKEN_TO_TOKEN) {
-      const reserveETHFirst = inputReserveETH
-      const reserveTokenFirst = inputReserveToken
-
-      const reserveETHSecond = outputReserveETH
-      const reserveTokenSecond = outputReserveToken
-
-      if (amount && reserveETHFirst && reserveTokenFirst && reserveETHSecond && reserveTokenSecond) {
-        try {
-          if (independentField === INPUT) {
-            const intermediateValue = calculateEtherTokenOutputFromInput(amount, reserveTokenFirst, reserveETHFirst)
-            if (intermediateValue.lte(ethers.constants.Zero)) {
-              throw Error()
-            }
-            const calculatedDependentValue = calculateEtherTokenOutputFromInput(
-              intermediateValue,
-              reserveETHSecond,
-              reserveTokenSecond,
-              false
-            )
-            if (calculatedDependentValue.lte(ethers.constants.Zero)) {
-              throw Error()
-            }
-            dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: calculatedDependentValue })
-          } else {
-            const intermediateValue = calculateEtherTokenInputFromOutput(amount, reserveETHSecond, reserveTokenSecond)
-            if (intermediateValue.lte(ethers.constants.Zero)) {
-              throw Error()
-            }
-            const calculatedDependentValue = calculateEtherTokenInputFromOutput(
-              intermediateValue,
-              reserveTokenFirst,
-              reserveETHFirst
-            )
-            if (calculatedDependentValue.lte(ethers.constants.Zero)) {
-              throw Error()
-            }
-            dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: calculatedDependentValue })
-          }
-        } catch {
-          setIndependentError(t('insufficientLiquidity'))
-        }
-        return () => {
-          dispatchSwapState({ type: 'UPDATE_DEPENDENT', payload: '' })
-        }
-      }
-    }
-  }, [
-    independentValueParsed,
-    swapType,
-    outputReserveETH,
-    outputReserveToken,
-    inputReserveETH,
-    inputReserveToken,
-    independentField,
-    inputRateValue,
-    t
-  ])
-
-  // calculate check liquidity
-  useEffect(() => {
-    if ((independentField === OUTPUT || independentField === RATE) && outputValueParsed) {
-      return () => {
-        let reserveAmount
-
-        if (swapType === ETH_TO_TOKEN || swapType === TOKEN_TO_TOKEN) {
-          reserveAmount = outputReserveToken
-        } else {
-          reserveAmount = inputReserveETH
-        }
-
-        if (reserveAmount && outputValueParsed.gt(reserveAmount)) {
-          setIndependentError(t('insufficientLiquidity'))
-        } else {
-          setIndependentError(null)
-          setInputError(null)
-        }
-      }
-    }
-  }, [swapType, outputValueParsed, inputReserveETH, outputReserveToken, independentField, t])
+  }, [independentField])
 
   const [inverted, setInverted] = useState(false)
 
@@ -1026,19 +847,6 @@ export default function ExchangePage({ initialCurrency }) {
   const highSlippageWarning = rateDelta && rateDelta.lt(ethers.utils.bigNumberify(0).sub(limitSlippage))
   const rateDeltaFormatted = amountFormatter(rateDelta, 16, 2, true)
 
-  const [fee, setFee] = useState(ORDER_FEE)
-
-  const enoughAmountToCoverFees = canCoverFees(
-    swapType,
-    fee,
-    inputCurrency,
-    outputCurrency,
-    independentField === INPUT ? independentValueParsed : inputValueParsed,
-    inputReserveETH,
-    inputReserveToken,
-    inputDecimals
-  )
-
   const isValid = outputValueParsed && !inputError && !independentError
 
   const estimatedText = `(${t('estimated')})`
@@ -1047,7 +855,7 @@ export default function ExchangePage({ initialCurrency }) {
   }
 
   async function onPlace() {
-    let method, fromCurrency, toCurrency, amount, minimumReturn, data, relayerFee
+    let method, fromCurrency, toCurrency, amount, minimumReturn, data
 
     ReactGA.event({
       category: 'place',
@@ -1056,7 +864,6 @@ export default function ExchangePage({ initialCurrency }) {
 
     amount = inputValueParsed
     minimumReturn = outputValueParsed
-    relayerFee = ethers.utils.bigNumberify(fee.toString())
 
     if (swapType === ETH_TO_TOKEN) {
       //@TODO: change it later
@@ -1080,15 +887,12 @@ export default function ExchangePage({ initialCurrency }) {
       const fullSecret = `20756e697377617065782e696f2020d83ddc09${secret}`
       const { privateKey, address } = new ethers.Wallet(fullSecret)
       data = await (swapType === ETH_TO_TOKEN
-        ? method(fromCurrency, toCurrency, minimumReturn, relayerFee, account, privateKey, address)
-        : method(fromCurrency, toCurrency, amount, minimumReturn, relayerFee, account, privateKey, address))
+        ? method(fromCurrency, toCurrency, minimumReturn, account, privateKey, address)
+        : method(fromCurrency, toCurrency, amount, minimumReturn, account, privateKey, address))
       const order = swapType === ETH_TO_TOKEN ? data : `0x${data.slice(267)}`
+
       saveOrder(account, order)
-      console.log({
-        from: account,
-        to: fromCurrency,
-        data
-      })
+
       const res = await (swapType === ETH_TO_TOKEN
         ? uniswapEXContract.depositEth(data, { value: amount })
         : new Promise((resolve, reject) =>
@@ -1200,6 +1004,7 @@ export default function ExchangePage({ initialCurrency }) {
         extraText={outputBalanceFormatted && formatBalance(outputBalanceFormatted)}
         onCurrencySelected={outputCurrency => {
           dispatchSwapState({ type: 'SELECT_CURRENCY', payload: { currency: outputCurrency, field: OUTPUT } })
+          dispatchSwapState({ type: 'UPDATE_INDEPENDENT', payload: { value: inputValueFormatted, field: INPUT } })
         }}
         onValueChange={outputValue => {
           dispatchSwapState({ type: 'UPDATE_INDEPENDENT', payload: { value: outputValue, field: OUTPUT } })
@@ -1232,35 +1037,13 @@ export default function ExchangePage({ initialCurrency }) {
           )}
         </ExchangeRateWrapper>
       </OversizedPanel>
-      <TransactionDetails
-        account={account}
-        highSlippageWarning={highSlippageWarning}
-        inputError={inputError}
-        independentError={independentError}
-        inputCurrency={inputCurrency}
-        outputCurrency={outputCurrency}
-        independentValue={independentValue}
-        independentValueParsed={independentValueParsed}
-        independentField={independentField}
-        INPUT={INPUT}
-        inputValueParsed={inputValueParsed}
-        outputValueParsed={outputValueParsed}
-        inputSymbol={inputSymbol}
-        outputSymbol={outputSymbol}
-        dependentDecimals={dependentDecimals}
-        independentDecimals={independentDecimals}
-        fee={fee}
-        setFee={setFee}
-      />
       <Flex>
         <Button
-          disabled={!fee || !account || !isValid || customSlippageError === 'invalid' || !enoughAmountToCoverFees}
+          disabled={!account || !isValid || customSlippageError === 'invalid'}
           onClick={onPlace}
-          warning={
-            fee < ORDER_MIN_FEE || highSlippageWarning || customSlippageError === 'warning' || !enoughAmountToCoverFees
-          }
+          warning={highSlippageWarning || customSlippageError === 'warning'}
         >
-          {fee < ORDER_MIN_FEE || customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
+          {customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
         </Button>
       </Flex>
       {!account && <div className="fee-error">{t('noWallet')} </div>}
@@ -1277,17 +1060,6 @@ export default function ExchangePage({ initialCurrency }) {
             ⚠️
           </span>
           {t('highSlippageWarning')}
-        </div>
-      )}
-      {!enoughAmountToCoverFees && (
-        <div className="fee-error">
-          <span role="img" aria-label="error">
-            💸
-          </span>
-          {t('enoughAmountToCoverFees', {
-            fee: amountFormatter(ethers.utils.bigNumberify(fee.toString()), 18, 4, false)
-          })}{' '}
-          <TokenLogo address={'ETH'} />
         </div>
       )}
       <div>
