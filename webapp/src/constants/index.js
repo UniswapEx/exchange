@@ -2,6 +2,11 @@ import { Token, ChainId, WETH } from 'uniswap-v2-sdk'
 
 import { fortmatic, injected, portis, walletconnect, walletlink } from '../connectors'
 
+export const ORDER_GRAPH = {
+  1: 'https://api.thegraph.com/subgraphs/name/uniswapex/uniswapex_orders',
+  4: 'https://api.thegraph.com/subgraphs/name/uniswapex/uniswapex_orders'
+}
+
 export const FACTORY_ADDRESSES = {
   1: '0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95',
   3: '0x9c83dCE8CA20E9aAF9D3efc003b2ea62aBC08351',
@@ -10,8 +15,14 @@ export const FACTORY_ADDRESSES = {
 }
 
 export const UNISWAPEX_ADDRESSES = {
-  1: '0xbd2a43799b83d9d0ff56b85d4c140bce3d1d1c6c',
-  3: '0xbbed73a556c48a6517f4f92325eb34ef40127922'
+  [ChainId.MAINNET]: '',
+  [ChainId.ROPSTEN]: '',
+  [ChainId.RINKEBY]: '0xb6548416b3db631e5351fa8ab227f85608050fdb'
+}
+
+export const LIMIT_ORDER_MODULE_ADDRESSES = {
+  [ChainId.MAINNET]: '0xef6c6b0bce4d2060efab0d16736c6ce7473deddc',
+  [ChainId.RINKEBY]: '0xef6c6b0bce4d2060efab0d16736c6ce7473deddc'
 }
 
 export const UNISWAPV2_ADDRESSES = {
