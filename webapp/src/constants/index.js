@@ -4,7 +4,7 @@ import { fortmatic, injected, portis, walletconnect, walletlink } from '../conne
 
 export const ORDER_GRAPH = {
   1: 'https://api.thegraph.com/subgraphs/name/uniswapex/uniswapex_orders',
-  4: 'https://api.thegraph.com/subgraphs/name/uniswapex/uniswapex_orders'
+  4: 'https://api.thegraph.com/subgraphs/name/uniswapex/uniswapex_orders_rinkeby'
 }
 
 export const FACTORY_ADDRESSES = {
