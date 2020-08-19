@@ -9,7 +9,6 @@ import { isAddress } from '../../utils'
 
 import { ethers } from 'ethers'
 import styled from 'styled-components'
-import Web3 from 'web3'
 
 import { Button } from '../../theme'
 import CurrencyInputPanel, { CurrencySelect, Aligner, StyledTokenName } from '../CurrencyInputPanel'
@@ -28,7 +27,6 @@ import {
   ACTION_PLACE_ORDER,
   ACTION_CANCEL_ORDER,
   useAllPendingOrders,
-  useAllPendingCancelOrders,
   useOrderPendingState
 } from '../../contexts/Transactions'
 import { useAddressBalance } from '../../contexts/Balances'
@@ -38,8 +36,6 @@ import { useTradeExactIn } from '../../hooks/trade'
 import { LIMIT_ORDER_MODULE_ADDRESSES, ORDER_GRAPH } from '../../constants'
 
 import './ExchangePage.css'
-
-const readWeb3 = new Web3(process.env.REACT_APP_NETWORK_URL)
 
 // Use to detach input from output
 let inputValue
@@ -150,8 +146,6 @@ const SpinnerWrapper = styled(Spinner)`
 // Local storage
 // ///
 const LS_ORDERS = 'orders_'
-const LS_LAST_BACKFILL = 'last_backfill_'
-const LS_LAST_ETH_BACKFILL = 'last_backfill_eth_'
 
 function lsKey(key, account) {
   return key + account.toString()
@@ -171,32 +165,6 @@ function saveOrder(account, orderData) {
       ls.set(key, prev)
     }
   }
-}
-
-function setLastBackfill(account, lastBlock) {
-  if (!account) return
-
-  ls.set(lsKey(LS_LAST_BACKFILL, account), lastBlock)
-}
-
-function getLastBackfill(account) {
-  if (!account) return 0
-
-  const raw = ls.get(lsKey(LS_LAST_BACKFILL, account))
-  return raw === null ? 0 : raw
-}
-
-function setLastEthBackfill(account, lastBlock) {
-  if (!account) return
-
-  ls.set(lsKey(LS_LAST_ETH_BACKFILL, account), lastBlock)
-}
-
-function getLastEthBackfill(account) {
-  if (!account) return 0
-
-  const raw = ls.get(lsKey(LS_LAST_ETH_BACKFILL, account))
-  return raw === null ? 0 : raw
 }
 
 // ///
@@ -378,141 +346,6 @@ function flipRate(rate) {
   } catch {}
 }
 
-function findOrders(data) {
-  const orders = []
-  const transfers = data.split('a9059cbb').slice(1)
-
-  // eslint-disable-next-line no-unused-vars
-  for (const transfer of transfers) {
-    if (transfer.length >= 704) {
-      const order = transfer.slice(256, 706)
-      // Uniswap orders have a pk and address embeded on the tx
-      // we look for those
-      const pk = `0x${order.slice(320, 320 + 64)}`
-      const expectedAddress = `0x${order.slice(408, 408 + 40)}`
-      if (new ethers.Wallet(pk).address.toLowerCase() === expectedAddress) {
-        orders.push(`0x${order.slice(1)}`)
-      }
-    }
-  }
-
-  return orders
-}
-
-async function backfillOrders(account, onUpdate = _ => {}) {
-  const reviewedTxs = new Set()
-
-  const targetBlock = await readWeb3.eth.getBlockNumber()
-  const last = getLastBackfill(account)
-  console.info(`Running backfill for ${account} - ${last}/${targetBlock}`)
-
-  const logs = await readWeb3.eth.getPastLogs({
-    fromBlock: last,
-    toBlock: targetBlock,
-    topics: [
-      '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef', // Transfer topic
-      `0x000000000000000000000000${account.replace('0x', '')}` // Account topic
-    ]
-  })
-
-  console.info(`Found ${logs.length} candidates for ${account}`)
-
-  let bufferEval = 0
-  // eslint-disable-next-line no-unused-vars
-  for (const log of logs) {
-    const txHash = log.transactionHash
-    if (!reviewedTxs.has(txHash)) {
-      reviewedTxs.add(txHash)
-      const tx = await readWeb3.eth.getTransaction(txHash)
-      const orders = findOrders(tx.input)
-
-      // eslint-disable-next-line no-unused-vars
-      for (const order of orders) {
-        console.info(`Found order ${txHash}`)
-        saveOrder(account, order)
-        onUpdate(log.blockNumber)
-      }
-
-      bufferEval++
-      if (bufferEval > 10) {
-        setLastBackfill(account, log.blockNumber)
-        bufferEval = 0
-      }
-    }
-  }
-
-  setLastBackfill(account, targetBlock)
-  console.info(`Finished backfill for ${account} up to ${targetBlock}`)
-  return targetBlock
-}
-
-async function backfillEthOrders(account, uniswapEx) {
-  const targetBlock = await readWeb3.eth.getBlockNumber()
-  const last = getLastEthBackfill(account)
-  console.info(`Running ETH backfill for ${account} - ${last}/${targetBlock}`)
-
-  const logs = await readWeb3.eth.getPastLogs({
-    fromBlock: last,
-    toBlock: targetBlock,
-    address: uniswapEx.address,
-    topics: [
-      '0x294738b98bcebacf616fd72532d3d8d8d229807bf03b68b25681bfbbdb3d3fe5', // Deposit topic
-      null, // Any log
-      `0x000000000000000000000000${account.replace('0x', '')}` // Account topic
-    ]
-  })
-
-  console.info(`Found ${logs.length} ETH orders for ${account}`)
-
-  // eslint-disable-next-line no-unused-vars
-  for (const log of logs) {
-    const order = `0x${log.data.slice(194)}`
-    saveOrder(account, order)
-  }
-
-  setLastEthBackfill(account, targetBlock)
-  console.info(`Finished ETH backfill for ${account}`)
-}
-
-const BACKFILL_RUNNING = 1
-const BACKFILL_DONE = 2
-
-function useBackfill(account, uniswapEXContract) {
-  const [oState, setOState] = useState({
-    ranBackfill: {},
-    syncBlock: 0
-  })
-
-  const [eState, setEState] = useState({
-    ranEthBackfill: {}
-  })
-
-  useEffect(() => {
-    if (isAddress(account) && oState.ranBackfill[account] === undefined) {
-      setOState({ ranBackfill: { ...oState.ranBackfill, [account]: BACKFILL_RUNNING } })
-      backfillOrders(account, block => {
-        setOState({ syncBlock: block, ranBackfill: { ...oState.ranBackfill, [account]: BACKFILL_RUNNING } })
-      }).then(block => {
-        setOState({
-          syncBlock: block,
-          ranBackfill: { ...oState.ranBackfill, [account]: BACKFILL_DONE }
-        })
-      })
-    }
-  }, [account, oState.ranBackfill])
-
-  useEffect(() => {
-    if (isAddress(account) && eState.ranEthBackfill[account] === undefined && uniswapEXContract) {
-      setEState({ ranEthBackfill: { ...eState.ranEthBackfill, [account]: BACKFILL_RUNNING } })
-      backfillEthOrders(account, uniswapEXContract).then(() => {
-        setEState({ ranEthBackfill: { ...eState.ranEthBackfill, [account]: BACKFILL_DONE } })
-      })
-    }
-  }, [account, eState.ranEthBackfill, uniswapEXContract])
-
-  return { ...oState, ...eState }
-}
-
 async function fetchUserOrders(account, chainId) {
   const query = `
   query GetOrdersByOwner($owner: String) {
@@ -544,10 +377,8 @@ async function fetchUserOrders(account, chainId) {
   }
 }
 
-function useStoredOrders(account, chainId, deps = []) {
+function useStoredOrders(account, chainId) {
   const [state, setState] = useState({ openOrders: [], allOrders: [] })
-
-  const depsString = JSON.stringify(deps)
 
   useEffect(() => {
     console.log(`Requesting load orders from storage`)
@@ -565,7 +396,7 @@ function useStoredOrders(account, chainId, deps = []) {
         stale = true
       }
     }
-  }, [depsString, account, chainId])
+  }, [account, chainId])
 
   return state
 }
@@ -583,20 +414,11 @@ export default function ExchangePage({ initialCurrency }) {
 
   const [inputError, setInputError] = useState()
 
-  const stateBackfill = useBackfill(account, uniswapEXContract)
-  const loading =
-    account &&
-    (stateBackfill.ranBackfill[account] !== BACKFILL_DONE || stateBackfill.ranEthBackfill[account] !== BACKFILL_DONE)
+  const loading = !account
 
   const pendingOrders = useAllPendingOrders()
-  const canceledOrders = useAllPendingCancelOrders()
-  const { allOrders, openOrders } = useStoredOrders(account, chainId, [
-    stateBackfill.syncBlock,
-    stateBackfill.ranBackfill[account],
-    stateBackfill.ranEthBackfill[account],
-    pendingOrders.length,
-    canceledOrders.length
-  ])
+
+  const { allOrders, openOrders } = useStoredOrders(account, chainId)
 
   const orders = openOrders.concat(allOrders.filter(o => pendingOrders.indexOf(o.data) !== -1))
   const addTransaction = useTransactionAdder()
