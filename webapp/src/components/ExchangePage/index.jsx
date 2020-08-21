@@ -382,18 +382,23 @@ function useStoredOrders(account, chainId) {
 
   useEffect(() => {
     console.log(`Requesting load orders from storage`)
-    if (isAddress(account)) {
+    if (account && isAddress(account)) {
       let stale = false
-      fetchUserOrders(account, chainId).then(orders => {
-        console.log(`Fetched ${orders.allOrders.length} ${orders.openOrders.length} orders from local storage`)
-        if (!stale) {
-          setState(orders)
-        } else {
-          console.log(`Staled load orders from storage`)
-        }
-      })
+      function fetch() {
+        fetchUserOrders(account, chainId).then(orders => {
+          console.log(`Fetched ${orders.allOrders.length} ${orders.openOrders.length} orders from local storage`)
+          if (!stale) {
+            setState(orders)
+          } else {
+            console.log(`Staled load orders from storage`)
+          }
+        })
+      }
+      fetch()
+      const fetchInterval = setInterval(fetch, 30000)
       return () => {
         stale = true
+        clearInterval(fetchInterval)
       }
     }
   }, [account, chainId])
