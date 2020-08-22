@@ -40,7 +40,7 @@ const BodyWrapper = styled.div`
 `
 
 const Body = styled.div`
-  max-width: 35rem;
+  max-width: 29rem;
   width: 90%;
   /* margin: 0 1.25rem 1.25rem 1.25rem; */
 `

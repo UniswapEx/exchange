@@ -136,7 +136,7 @@ const Order = styled.div`
   z-index: 1;
   padding: 20px;
   margin-bottom: 40px;
-  border: ${({ theme }) => `1px solid ${theme.malibuGreen}`};
+  border: ${({ theme }) => `1px solid ${theme.mercuryGray}`};
   background-color: ${({ theme }) => theme.concreteGray};
 `
 
@@ -920,7 +920,6 @@ export default function ExchangePage({ initialCurrency }) {
           {customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
         </Button>
       </Flex>
-      {!account && <div className="fee-error">{t('noWallet')} </div>}
       {rateDeltaFormatted && (
         <div className="market-delta-info">
           {rateDeltaFormatted.startsWith('-')
@@ -937,21 +936,24 @@ export default function ExchangePage({ initialCurrency }) {
         </div>
       )}
       <div>
-        <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
-        {loading && (
-          <>
-            <SpinnerWrapper src={Circle} alt="loader" /> Loading ...
-            <br />
-            <br />
+        {account && <>
+          <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
+          {loading && (
+            <>
+              <SpinnerWrapper src={Circle} alt="loader" /> Loading ...
+              <br />
+              <br />
+            </>
+          )}
+          {orders.length === 0 && !loading && <p>{t('noOpenOrders')}</p>}
+          {
+            <div>
+              {orders.map(order => (
+                <OrderCard key={order.witness} data={{ order: order }} />
+              ))}
+            </div>
+          }
           </>
-        )}
-        {orders.length === 0 && !loading && <p>{t('noOpenOrders')}</p>}
-        {
-          <div>
-            {orders.map(order => (
-              <OrderCard key={order.witness} data={{ order: order }} />
-            ))}
-          </div>
         }
       </div>
     </>

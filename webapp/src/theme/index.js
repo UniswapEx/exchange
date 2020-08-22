@@ -38,15 +38,15 @@ const theme = darkMode => ({
   textColor: darkMode ? white : '#010101',
 
   // for setting css on <html>
-  backgroundColor: darkMode ? '#333639' : white,
+  backgroundColor: darkMode ? '#2b2b2b' : white,
 
   modalBackground: darkMode ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.3)',
-  inputBackground: darkMode ? '#202124' : white,
+  inputBackground: darkMode ? '#171717' : white,
   placeholderGray: darkMode ? '#5F5F5F' : '#E1E1E1',
   shadowColor: darkMode ? '#000' : '#2F80ED',
 
   // grays
-  concreteGray: darkMode ? '#292C2F' : '#FAFAFA',
+  concreteGray: darkMode ? '#222222' : '#FAFAFA',
   mercuryGray: darkMode ? '#333333' : '#E1E1E1',
   silverGray: darkMode ? '#737373' : '#C4C4C4',
   chaliceGray: darkMode ? '#7B7B7B' : '#AEAEAE',
@@ -57,7 +57,7 @@ const theme = darkMode => ({
   //blacks
   charcoalBlack: darkMode ? '#F2F2F2' : '#404040',
   // blues
-  zumthorBlue: darkMode ? '#212529' : '#eeffeb',
+  zumthorBlue: darkMode ? '#262626' : '#eeffeb',
   malibuGreen: darkMode ? '#87c122' : '#87c122',
   royalGreen: darkMode ? '#87c122' : '#498227',
   loadingBlue: darkMode ? '#e4f0ff' : '#e4f0ff',
@@ -92,7 +92,7 @@ const theme = darkMode => ({
 
   // backgrounds / greys
   bg1: darkMode ? '#212429' : '#FFFFFF',
-  bg2: darkMode ? '#2C2F36' : '#F7F8FA',
+  bg2: darkMode ? '#1a1a1a' : '#F7F8FA',
   bg3: darkMode ? '#40444F' : '#EDEEF2',
   bg4: darkMode ? '#565A69' : '#CED0D9',
   bg5: darkMode ? '#565A69' : '#888D9B',
