@@ -14,6 +14,11 @@ export const FACTORY_ADDRESSES = {
   42: '0xD3E51Ef092B2845f10401a0159B2B96e8B6c3D30'
 }
 
+export const MULTICALL_ADDRESS = {
+  1: '0xeefba1e63905ef1d7acba5a8513c70307c1ce441',
+  4: '0x751c5b6c24ee8687c0d5f1c26813c4a09406c904'
+}
+
 export const UNISWAPEX_ADDRESSES = {
   [ChainId.MAINNET]: '',
   [ChainId.ROPSTEN]: '',
