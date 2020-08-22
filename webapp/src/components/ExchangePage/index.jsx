@@ -75,6 +75,10 @@ const DownArrow = styled(WrappedArrowDown)`
   cursor: ${({ clickable }) => clickable && 'pointer'};
 `
 
+const Spacer = styled.div`
+  flex: 1 1 auto;
+`
+
 const WrappedArrowRight = ({ clickable, active, ...rest }) => <ArrowDown {...rest} transform="rotate(-90)" />
 const RightArrow = styled(WrappedArrowRight)`
   color: ${({ theme }) => theme.royalGreen};
@@ -120,6 +124,12 @@ const Flex = styled.div`
   button {
     max-width: 20rem;
   }
+`
+
+const CancelButton = styled.div`
+  color: ${({ selected, theme }) => (selected ? theme.textColor : theme.textColor)};
+  padding: 0px 6px 0px 6px;
+  font-size: 0.85rem;
 `
 
 const Order = styled.div`
@@ -1013,6 +1023,12 @@ function OrderCard(props) {
             {<StyledTokenName>{toSymbol}</StyledTokenName>}
           </Aligner>
         </CurrencySelect>
+        <Spacer/>
+        <CurrencySelect selected={true} disabled={canceling} onClick={() => onCancel(order, pending)}>
+          <CancelButton>
+            {canceling ? 'Cancelling ...' : t('cancel')}
+          </CancelButton>
+        </CurrencySelect>
       </div>
       <p>
         {`Amount: ${amountFormatter(ethers.utils.bigNumberify(amount), fromDecimals, 6)}`} {fromSymbol}
@@ -1023,9 +1039,6 @@ function OrderCard(props) {
       <p>
         { last && <a rel="noopener noreferrer" target="_blank" href={explorerLink}>Pending transaction...</a> }
       </p>
-      <Button className="cta" disabled={canceling} onClick={() => onCancel(order, pending)}>
-        {canceling ? 'Cancelling ...' : t('cancel')}
-      </Button>
     </Order>
   )
 }
