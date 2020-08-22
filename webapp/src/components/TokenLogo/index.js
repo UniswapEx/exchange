@@ -38,8 +38,8 @@ export default function TokenLogo({ address, size = '1rem', ...rest }) {
   } else {
     return (
       <Emoji {...rest} size={size}>
-        <span role="img" aria-label="Thinking">
-          🤔
+        <span style={{ lineHeight: 0 }} role="img" aria-label="Thinking">
+          🌕
         </span>
       </Emoji>
     )
