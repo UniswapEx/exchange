@@ -373,9 +373,9 @@ async function fetchUserOrders(account, chainId) {
       id
       owner
       module
-      fromToken
-      toToken
-      amount
+      inputToken
+      outputToken
+      inputAmount
       minReturn
       witness
       secret
@@ -414,19 +414,19 @@ function useGraphOrders(account, chainId) {
 }
 
 function isEthOrder(order) {
-  return order.fromToken.toLowerCase() === ETH_ADDRESS.toLowerCase()
+  return order.inputToken.toLowerCase() === ETH_ADDRESS.toLowerCase()
 }
 
 function keyOfOrder(order) {
   const moduleData = ethers.utils.defaultAbiCoder.encode(
     ['address', 'uint256'],
-    [order.toToken, order.minReturn]
+    [order.outputToken, order.minReturn]
   )
 
   return ethers.utils.keccak256(
     ethers.utils.defaultAbiCoder.encode(
       ['address', 'address', 'address', 'address', 'bytes'],
-      [order.module, order.fromToken, order.owner, order.witness, moduleData]
+      [order.module, order.inputToken, order.owner, order.witness, moduleData]
     )
   )
 }
@@ -448,7 +448,7 @@ async function balancesOfOrders(orders, uniswapEXContract, chainId) {
     orders.map((o, i) => {
       if (!isEthOrder(o)) {
         return {
-          target: o.fromToken,
+          target: o.inputToken,
           call: ['balanceOf(address)(uint256)', vaultForOrder(o, uniswapEXContract)],
           returns: [[i]]
         }
@@ -478,10 +478,10 @@ function useSavedOrders(account, chainId, uniswapEXContract, deps = []) {
       const allOrders = getSavedOrders(account, chainId)
       console.log(`Loaded ${allOrders.length} orders from local storage`)
       balancesOfOrders(allOrders, uniswapEXContract, chainId).then((amounts) => {
-        allOrders.map((o, i) => (o.amount = amounts[i].toString()))
+        allOrders.map((o, i) => (o.inputAmount = amounts[i].toString()))
         setState ({
           allOrders: allOrders,
-          openOrders: allOrders.filter(o => o.amount !== "0")
+          openOrders: allOrders.filter(o => o.inputAmount !== "0")
         })
       })
     }
@@ -718,13 +718,13 @@ export default function ExchangePage({ initialCurrency }) {
   }
 
   async function onPlace() {
-    let method, fromCurrency, toCurrency, amount, minimumReturn, data
+    let method, fromCurrency, toCurrency, inputAmount, minimumReturn, data
     ReactGA.event({
       category: 'place',
       action: 'place'
     })
 
-    amount = inputValueParsed
+    inputAmount = inputValueParsed
     minimumReturn = outputValueParsed
 
     if (swapType === ETH_TO_TOKEN) {
@@ -765,21 +765,21 @@ export default function ExchangePage({ initialCurrency }) {
             address,
             abiCoder.encode(['address', 'uint256'], [toCurrency, minimumReturn]),
             privateKey,
-            amount
+            inputAmount
           ))
 
       // const order = swapType === ETH_TO_TOKEN ? data : `0x${data.slice(267)}`
       const order = {
-        amount: amount.toString(),
-        creationAmount: amount.toString(),
-        fromToken: fromCurrency.toLowerCase(),
+        inputAmount: inputAmount.toString(),
+        creationAmount: inputAmount.toString(),
+        inputToken: fromCurrency.toLowerCase(),
         id: "???",
         minReturn: minimumReturn.toString(),
         module: LIMIT_ORDER_MODULE_ADDRESSES[chainId].toLowerCase(),
         owner: account.toLowerCase(),
         secret: privateKey,
         status: "open",
-        toToken: toCurrency.toLowerCase(),
+        outputToken: toCurrency.toLowerCase(),
         witness: address.toLowerCase()
       }
 
@@ -787,7 +787,7 @@ export default function ExchangePage({ initialCurrency }) {
 
       let res
       if (swapType === ETH_TO_TOKEN) {
-        res = await uniswapEXContract.depositEth(data, { value: amount })
+        res = await uniswapEXContract.depositEth(data, { value: inputAmount })
       } else {
         const provider = new ethers.providers.Web3Provider(library.provider)
         res = await provider.getSigner().sendTransaction(
@@ -976,11 +976,11 @@ function OrderCard(props) {
 
   const order = props.data.order
 
-  const fromToken = order.fromToken === ETH_ADDRESS.toLowerCase() ? 'ETH' : order.fromToken
-  const toToken = order.toToken === ETH_ADDRESS.toLowerCase() ? 'ETH' : order.toToken
+  const inputToken = order.inputToken === ETH_ADDRESS.toLowerCase() ? 'ETH' : order.inputToken
+  const outputToken = order.outputToken === ETH_ADDRESS.toLowerCase() ? 'ETH' : order.outputToken
 
-  const { symbol: fromSymbol, decimals: fromDecimals } = useTokenDetails(fromToken)
-  const { symbol: toSymbol, decimals: toDecimals } = useTokenDetails(toToken)
+  const { symbol: fromSymbol, decimals: fromDecimals } = useTokenDetails(inputToken)
+  const { symbol: toSymbol, decimals: toDecimals } = useTokenDetails(outputToken)
   const { state, last } = useOrderPendingState(order)
 
   const canceling = state === ACTION_CANCEL_ORDER
@@ -992,9 +992,9 @@ function OrderCard(props) {
   async function onCancel(order, pending) {
     const abiCoder = new ethers.utils.AbiCoder()
 
-    const { module, fromToken, toToken, minReturn, owner, witness } = order
+    const { module, inputToken, outputToken, minReturn, owner, witness } = order
     uniswapEXContract
-      .cancelOrder(module, fromToken, owner, witness, abiCoder.encode(['address', 'uint256'], [toToken, minReturn]), {
+      .cancelOrder(module, inputToken, owner, witness, abiCoder.encode(['address', 'uint256'], [outputToken, minReturn]), {
         gasLimit: pending ? 400000 : undefined
       })
       .then(response => {
@@ -1003,14 +1003,14 @@ function OrderCard(props) {
   }
 
   const explorerLink = last ? getEtherscanLink(chainId, last.response.hash, 'transaction') : undefined
-  const amount = order.amount !== "0" ? order.amount : order.creationAmount
+  const inputAmount = order.inputAmount !== "0" ? order.inputAmount : order.creationAmount
 
   return (
     <Order className="order">
       <div className="tokens">
         <CurrencySelect selected={true}>
           <Aligner>
-            {<TokenLogo address={fromToken} />}
+            {<TokenLogo address={inputToken} />}
             {<StyledTokenName>{fromSymbol}</StyledTokenName>}
           </Aligner>
         </CurrencySelect>
@@ -1019,7 +1019,7 @@ function OrderCard(props) {
         </Aligner>
         <CurrencySelect selected={true}>
           <Aligner>
-            {<TokenLogo address={toToken} />}
+            {<TokenLogo address={outputToken} />}
             {<StyledTokenName>{toSymbol}</StyledTokenName>}
           </Aligner>
         </CurrencySelect>
@@ -1031,7 +1031,7 @@ function OrderCard(props) {
         </CurrencySelect>
       </div>
       <p>
-        {`Amount: ${amountFormatter(ethers.utils.bigNumberify(amount), fromDecimals, 6)}`} {fromSymbol}
+        {`Amount: ${amountFormatter(ethers.utils.bigNumberify(inputAmount), fromDecimals, 6)}`} {fromSymbol}
       </p>
       <p>
         {`Min return: ${amountFormatter(ethers.utils.bigNumberify(order.minReturn), toDecimals, 6)}`} {toSymbol}
