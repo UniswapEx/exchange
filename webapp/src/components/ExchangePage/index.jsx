@@ -1003,7 +1003,11 @@ function OrderCard(props) {
   }
 
   const explorerLink = last ? getEtherscanLink(chainId, last.response.hash, 'transaction') : undefined
-  const inputAmount = order.inputAmount !== "0" ? order.inputAmount : order.creationAmount
+  const inputAmount = ethers.utils.bigNumberify(order.inputAmount !== "0" ? order.inputAmount : order.creationAmount)
+  const minReturn = ethers.utils.bigNumberify(order.minReturn)
+
+  const rateFromTo = getExchangeRate(inputAmount, fromDecimals, minReturn, toDecimals, false)
+  const rateToFrom = getExchangeRate(inputAmount, fromDecimals, minReturn, toDecimals, true)
 
   return (
     <Order className="order">
@@ -1031,10 +1035,13 @@ function OrderCard(props) {
         </CurrencySelect>
       </div>
       <p>
-        {`Amount: ${amountFormatter(ethers.utils.bigNumberify(inputAmount), fromDecimals, 6)}`} {fromSymbol}
+        {`Sell: ${amountFormatter(inputAmount, fromDecimals, 6)}`} {fromSymbol}
       </p>
       <p>
-        {`Min return: ${amountFormatter(ethers.utils.bigNumberify(order.minReturn), toDecimals, 6)}`} {toSymbol}
+        {`Receive: ${amountFormatter(minReturn, toDecimals, 6)}`} {toSymbol}
+      </p>
+      <p>
+        {`Rate: ${amountFormatter(rateFromTo, 18, 2)}`} {fromSymbol}/{toSymbol} - {amountFormatter(rateToFrom, 18, 2)} {toSymbol}/{fromSymbol}
       </p>
       <p>
         { last && <a rel="noopener noreferrer" target="_blank" href={explorerLink}>Pending transaction...</a> }
