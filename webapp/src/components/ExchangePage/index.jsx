@@ -4,6 +4,7 @@ import ReactGA from 'react-ga'
 import { useTranslation } from 'react-i18next'
 import { useWeb3React } from '@web3-react/core'
 import * as ls from 'local-storage'
+import { darken } from 'polished'
 
 import { isAddress, getEtherscanLink } from '../../utils'
 
