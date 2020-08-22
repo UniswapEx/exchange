@@ -97,21 +97,24 @@ export default function Footer() {
     <FooterFrame>
       <FooterElement>
         <Title>
-          <Link id="link" href="https://github.com/UniswapEx/exchange#how-it-works">
+          <Link id="link" rel="noopener noreferrer" target="_blank" href="https://github.com/UniswapEx/exchange#how-it-works">
             <h1 id="title">About</h1>
           </Link>
-          <Link id="link" href="https://github.com/UniswapEx/exchange">
+          <Link id="link" rel="noopener noreferrer" target="_blank" href="https://github.com/UniswapEx/exchange">
             <h1 id="title">Code</h1>
           </Link>
-          <Link id="link" href="https://etherscan.io/address/0x2Aba5DEd72B165a9aB5877Fd3669215906F7aCFe">
+          <Link id="link" rel="noopener noreferrer" target="_blank" href="https://v1.uniswapex.io/">
+            <h1 id="title">UniswapEx V1</h1>
+          </Link>
+          <Link id="link" rel="noopener noreferrer" target="_blank" href="https://gitcoin.co/grants/765/uniswapex-v2">
             <h1 id="title">Donate ❤</h1>
           </Link>
-          <Link id="link" href="https://discord.gg/w6JVcrg">
+          <Link id="link" rel="noopener noreferrer" target="_blank" href="https://discord.gg/w6JVcrg">
             <DiscordImg>
               <SVGDiscord />
             </DiscordImg>
           </Link>
-          <Link id="link" href="https://t.me/UniswapEX">
+          <Link id="link" rel="noopener noreferrer" target="_blank" href="https://t.me/UniswapEX">
             <TelegramImg>
               <SVGTelegram />
             </TelegramImg>

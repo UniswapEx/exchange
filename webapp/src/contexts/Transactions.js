@@ -195,21 +195,24 @@ export const ACTION_CANCEL_ORDER = 1
 
 export const ORDER_NOT_PENDING = -1
 
-export function useOrderPendingState(orderData) {
+export function useOrderPendingState(order) {
   const allTransactions = useAllTransactions()
 
   const last = Object.keys(allTransactions).find(
     hash =>
       allTransactions[hash][RESPONSE] &&
-      allTransactions[hash][RESPONSE][CUSTOM_DATA].order === orderData &&
+      allTransactions[hash][RESPONSE][CUSTOM_DATA].order.secret === order.secret &&
       !allTransactions[hash][RECEIPT]
   )
 
   if (last === undefined) {
-    return ORDER_NOT_PENDING
+    return { state: ORDER_NOT_PENDING, last: undefined }
   }
 
-  return allTransactions[last][RESPONSE][CUSTOM_DATA].action
+  return {
+    state: allTransactions[last][RESPONSE][CUSTOM_DATA].action,
+    last: allTransactions[last]
+  }
 }
 
 export function useAllPendingOrders() {

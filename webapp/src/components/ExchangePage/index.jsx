@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useWeb3React } from '@web3-react/core'
 import * as ls from 'local-storage'
 
-import { isAddress } from '../../utils'
+import { isAddress, getEtherscanLink } from '../../utils'
 
 import { ethers } from 'ethers'
 import styled from 'styled-components'
@@ -23,17 +23,19 @@ import { useUniswapExContract } from '../../hooks'
 import { Spinner } from '../../theme'
 import { useTokenDetails } from '../../contexts/Tokens'
 import {
-  useTransactionAdder,
   ACTION_PLACE_ORDER,
   ACTION_CANCEL_ORDER,
   useAllPendingOrders,
-  useOrderPendingState
+  useTransactionAdder,
+  useOrderPendingState,
+  useAllPendingCancelOrders
 } from '../../contexts/Transactions'
 import { useAddressBalance } from '../../contexts/Balances'
 import { useFetchAllBalances } from '../../contexts/AllBalances'
 import { useAddressAllowance } from '../../contexts/Allowances'
 import { useTradeExactIn } from '../../hooks/trade'
-import { LIMIT_ORDER_MODULE_ADDRESSES, ORDER_GRAPH } from '../../constants'
+import { LIMIT_ORDER_MODULE_ADDRESSES, ORDER_GRAPH, MULTICALL_ADDRESS } from '../../constants'
+import { aggregate } from '@makerdao/multicall'
 
 import './ExchangePage.css'
 
@@ -71,6 +73,10 @@ const DownArrow = styled(WrappedArrowDown)`
   position: relative;
   padding: 0.875rem;
   cursor: ${({ clickable }) => clickable && 'pointer'};
+`
+
+const Spacer = styled.div`
+  flex: 1 1 auto;
 `
 
 const WrappedArrowRight = ({ clickable, active, ...rest }) => <ArrowDown {...rest} transform="rotate(-90)" />
@@ -120,6 +126,12 @@ const Flex = styled.div`
   }
 `
 
+const CancelButton = styled.div`
+  color: ${({ selected, theme }) => (selected ? theme.textColor : theme.textColor)};
+  padding: 0px 6px 0px 6px;
+  font-size: 0.85rem;
+`
+
 const Order = styled.div`
   display: -webkit-box;
   display: -webkit-flex;
@@ -134,7 +146,7 @@ const Order = styled.div`
   z-index: 1;
   padding: 20px;
   margin-bottom: 40px;
-  border: ${({ theme }) => `1px solid ${theme.malibuGreen}`};
+  border: ${({ theme }) => `1px solid ${theme.mercuryGray}`};
   background-color: ${({ theme }) => theme.concreteGray};
 `
 
@@ -147,14 +159,14 @@ const SpinnerWrapper = styled(Spinner)`
 // ///
 const LS_ORDERS = 'orders_'
 
-function lsKey(key, account) {
-  return key + account.toString()
+function lsKey(key, account, chainId) {
+  return key + account.toString() + chainId
 }
 
-function saveOrder(account, orderData) {
+function saveOrder(account, orderData, chainId) {
   if (!account) return
 
-  const key = lsKey(LS_ORDERS, account)
+  const key = lsKey(LS_ORDERS, account, chainId)
   const prev = ls.get(key)
 
   if (prev === null) {
@@ -165,6 +177,14 @@ function saveOrder(account, orderData) {
       ls.set(key, prev)
     }
   }
+}
+
+function getSavedOrders(account, chainId) {
+  if (!account) return []
+
+  console.log("Loading saved orders from storage location", account, lsKey(LS_ORDERS, account, chainId))
+  const raw = ls.get(lsKey(LS_ORDERS, account, chainId))
+  return raw == null ? [] : raw
 }
 
 // ///
@@ -353,9 +373,9 @@ async function fetchUserOrders(account, chainId) {
       id
       owner
       module
-      fromToken
-      toToken
-      amount
+      inputToken
+      outputToken
+      inputAmount
       minReturn
       witness
       secret
@@ -377,31 +397,96 @@ async function fetchUserOrders(account, chainId) {
   }
 }
 
-function useStoredOrders(account, chainId) {
+function useGraphOrders(account, chainId) {
   const [state, setState] = useState({ openOrders: [], allOrders: [] })
 
   useEffect(() => {
-    console.log(`Requesting load orders from storage`)
+    console.log(`Requesting load orders from the graph`)
     if (account && isAddress(account)) {
-      let stale = false
-      function fetch() {
-        fetchUserOrders(account, chainId).then(orders => {
-          console.log(`Fetched ${orders.allOrders.length} ${orders.openOrders.length} orders from local storage`)
-          if (!stale) {
-            setState(orders)
-          } else {
-            console.log(`Staled load orders from storage`)
-          }
-        })
-      }
-      fetch()
-      const fetchInterval = setInterval(fetch, 30000)
-      return () => {
-        stale = true
-        clearInterval(fetchInterval)
-      }
+      fetchUserOrders(account, chainId).then(orders => {
+        console.log(`Fetched ${orders.allOrders.length} ${orders.openOrders.length} orders from the graph`)
+        setState(orders)
+      })
     }
   }, [account, chainId])
+
+  return state
+}
+
+function isEthOrder(order) {
+  return order.inputToken.toLowerCase() === ETH_ADDRESS.toLowerCase()
+}
+
+function keyOfOrder(order) {
+  const moduleData = ethers.utils.defaultAbiCoder.encode(
+    ['address', 'uint256'],
+    [order.outputToken, order.minReturn]
+  )
+
+  return ethers.utils.keccak256(
+    ethers.utils.defaultAbiCoder.encode(
+      ['address', 'address', 'address', 'address', 'bytes'],
+      [order.module, order.inputToken, order.owner, order.witness, moduleData]
+    )
+  )
+}
+
+function vaultForOrder(order, uniswapEXContract) {
+  const VAULT_CODE_HASH = '0xfa3da1081bc86587310fce8f3a5309785fc567b9b20875900cb289302d6bfa97'
+  const hash = ethers.utils.keccak256(
+    ethers.utils.solidityPack(
+      ['bytes1', 'address', 'bytes32', 'bytes32'],
+      ['0xff', uniswapEXContract.address, keyOfOrder(order), VAULT_CODE_HASH]
+    )
+  )
+
+  return `0x${hash.slice(-40)}`
+}
+
+async function balancesOfOrders(orders, uniswapEXContract, chainId) {
+  const result = await aggregate(
+    orders.map((o, i) => {
+      if (!isEthOrder(o)) {
+        return {
+          target: o.inputToken,
+          call: ['balanceOf(address)(uint256)', vaultForOrder(o, uniswapEXContract)],
+          returns: [[i]]
+        }
+      } else {
+        return {
+          target: uniswapEXContract.address,
+          call: ['ethDeposits(bytes32)(uint256)', keyOfOrder(o)],
+          returns: [[i]]
+        }
+      }
+    }),
+    {
+      multicallAddress: MULTICALL_ADDRESS[chainId],
+      rpcUrl: process.env.REACT_APP_NETWORK_URL
+    }
+  )
+
+  return result.results
+}
+
+function useSavedOrders(account, chainId, uniswapEXContract, deps = []) {
+  const [state, setState] = useState({ allOrders: [], openOrders: [] })
+
+  useEffect(() => {
+    console.log(`Requesting load orders from storage`)
+    if (isAddress(account)) {
+      const allOrders = getSavedOrders(account, chainId)
+      console.log(`Loaded ${allOrders.length} orders from local storage`)
+      balancesOfOrders(allOrders, uniswapEXContract, chainId).then((amounts) => {
+        allOrders.map((o, i) => (o.inputAmount = amounts[i].toString()))
+        setState ({
+          allOrders: allOrders,
+          openOrders: allOrders.filter(o => o.inputAmount !== "0")
+        })
+      })
+    }
+  // eslint-disable-next-line
+  }, [...deps, account, chainId, uniswapEXContract])
 
   return state
 }
@@ -422,10 +507,19 @@ export default function ExchangePage({ initialCurrency }) {
   const loading = !account
 
   const pendingOrders = useAllPendingOrders()
+  const pendingCancelOrders = useAllPendingCancelOrders()
 
-  const { allOrders, openOrders } = useStoredOrders(account, chainId)
+  // Get locally saved orders and the graph orders
+  const local = useSavedOrders(account, chainId, uniswapEXContract, [pendingOrders.length, pendingCancelOrders.length])
+  const graph = useGraphOrders(account, chainId)
 
-  const orders = openOrders.concat(allOrders.filter(o => pendingOrders.indexOf(o.data) !== -1))
+  // Aggregate graph and local orders, local orders have priority
+  const allOrders = local.allOrders.concat(graph.allOrders.filter((o) => !(local.allOrders.find((c) => c.secret === o.secret))))
+  const openOrders = local.openOrders.concat(graph.openOrders.filter((o) => !(local.allOrders.find((c) => c.secret === o.secret))))
+
+  // Define orders to show as openOrders + pending orders
+  const orders = openOrders.concat(allOrders.filter(o => pendingOrders.find((p) => p.secret === o.secret)))
+  // const orders = graph.openOrders.concat(knownOrders.filter(o => o && pendingOrders.indexOf(o) !== -1))
   const addTransaction = useTransactionAdder()
 
   // analytics
@@ -624,14 +718,13 @@ export default function ExchangePage({ initialCurrency }) {
   }
 
   async function onPlace() {
-    let method, fromCurrency, toCurrency, amount, minimumReturn, data
-
+    let method, fromCurrency, toCurrency, inputAmount, minimumReturn, data
     ReactGA.event({
       category: 'place',
       action: 'place'
     })
 
-    amount = inputValueParsed
+    inputAmount = inputValueParsed
     minimumReturn = outputValueParsed
 
     if (swapType === ETH_TO_TOKEN) {
@@ -672,38 +765,44 @@ export default function ExchangePage({ initialCurrency }) {
             address,
             abiCoder.encode(['address', 'uint256'], [toCurrency, minimumReturn]),
             privateKey,
-            amount
+            inputAmount
           ))
-      const order = swapType === ETH_TO_TOKEN ? data : `0x${data.slice(267)}`
 
-      saveOrder(account, order)
+      // const order = swapType === ETH_TO_TOKEN ? data : `0x${data.slice(267)}`
+      const order = {
+        inputAmount: inputAmount.toString(),
+        creationAmount: inputAmount.toString(),
+        inputToken: fromCurrency.toLowerCase(),
+        id: "???",
+        minReturn: minimumReturn.toString(),
+        module: LIMIT_ORDER_MODULE_ADDRESSES[chainId].toLowerCase(),
+        owner: account.toLowerCase(),
+        secret: privateKey,
+        status: "open",
+        outputToken: toCurrency.toLowerCase(),
+        witness: address.toLowerCase()
+      }
 
-      const res = await (swapType === ETH_TO_TOKEN
-        ? uniswapEXContract.depositEth(data, { value: amount })
-        : new Promise((resolve, reject) =>
-            library.send(
-              'eth_sendTransaction',
-              [
-                {
-                  from: account,
-                  to: fromCurrency,
-                  data
-                }
-              ],
-              (err, hash) => {
-                if (err) {
-                  reject(err)
-                }
-                resolve({ hash })
-              }
-            )
-          ))
+      saveOrder(account, order, chainId)
+
+      let res
+      if (swapType === ETH_TO_TOKEN) {
+        res = await uniswapEXContract.depositEth(data, { value: inputAmount })
+      } else {
+        const provider = new ethers.providers.Web3Provider(library.provider)
+        res = await provider.getSigner().sendTransaction(
+          {
+            to: fromCurrency,
+            data: data
+          }
+        )
+      }
 
       if (res.hash) {
         addTransaction(res, { action: ACTION_PLACE_ORDER, order: order })
       }
     } catch (e) {
-      console.log(e.message)
+      console.log("Error on place order", e.message)
     }
   }
 
@@ -831,7 +930,6 @@ export default function ExchangePage({ initialCurrency }) {
           {customSlippageError === 'warning' ? t('placeAnyway') : t('place')}
         </Button>
       </Flex>
-      {!account && <div className="fee-error">{t('noWallet')} </div>}
       {rateDeltaFormatted && (
         <div className="market-delta-info">
           {rateDeltaFormatted.startsWith('-')
@@ -848,21 +946,24 @@ export default function ExchangePage({ initialCurrency }) {
         </div>
       )}
       <div>
-        <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
-        {loading && (
-          <>
-            <SpinnerWrapper src={Circle} alt="loader" /> Loading ...
-            <br />
-            <br />
+        {account && <>
+          <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
+          {loading && (
+            <>
+              <SpinnerWrapper src={Circle} alt="loader" /> Loading ...
+              <br />
+              <br />
+            </>
+          )}
+          {orders.length === 0 && !loading && <p>{t('noOpenOrders')}</p>}
+          {
+            <div>
+              {orders.map(order => (
+                <OrderCard key={order.witness} data={{ order: order }} />
+              ))}
+            </div>
+          }
           </>
-        )}
-        {orders.length === 0 && !loading && <p>{t('noOpenOrders')}</p>}
-        {
-          <div>
-            {orders.map(order => (
-              <OrderCard key={order.witness} data={{ order: order }} />
-            ))}
-          </div>
         }
       </div>
     </>
@@ -871,15 +972,16 @@ export default function ExchangePage({ initialCurrency }) {
 
 function OrderCard(props) {
   const { t } = useTranslation()
+  const { chainId } = useWeb3React()
 
   const order = props.data.order
 
-  const fromToken = order.fromToken === ETH_ADDRESS.toLowerCase() ? 'ETH' : order.fromToken
-  const toToken = order.toToken === ETH_ADDRESS.toLowerCase() ? 'ETH' : order.toToken
+  const inputToken = order.inputToken === ETH_ADDRESS.toLowerCase() ? 'ETH' : order.inputToken
+  const outputToken = order.outputToken === ETH_ADDRESS.toLowerCase() ? 'ETH' : order.outputToken
 
-  const { symbol: fromSymbol, decimals: fromDecimals } = useTokenDetails(fromToken)
-  const { symbol: toSymbol, decimals: toDecimals } = useTokenDetails(toToken)
-  const state = useOrderPendingState(order.data)
+  const { symbol: fromSymbol, decimals: fromDecimals } = useTokenDetails(inputToken)
+  const { symbol: toSymbol, decimals: toDecimals } = useTokenDetails(outputToken)
+  const { state, last } = useOrderPendingState(order)
 
   const canceling = state === ACTION_CANCEL_ORDER
   const pending = state === ACTION_PLACE_ORDER
@@ -890,22 +992,29 @@ function OrderCard(props) {
   async function onCancel(order, pending) {
     const abiCoder = new ethers.utils.AbiCoder()
 
-    const { module, fromToken, toToken, minReturn, owner, witness, data } = order
+    const { module, inputToken, outputToken, minReturn, owner, witness } = order
     uniswapEXContract
-      .cancelOrder(module, fromToken, owner, witness, abiCoder.encode(['address', 'uint256'], [toToken, minReturn]), {
+      .cancelOrder(module, inputToken, owner, witness, abiCoder.encode(['address', 'uint256'], [outputToken, minReturn]), {
         gasLimit: pending ? 400000 : undefined
       })
       .then(response => {
-        addTransaction(response, { action: ACTION_CANCEL_ORDER, order: data })
+        addTransaction(response, { action: ACTION_CANCEL_ORDER, order: order })
       })
   }
+
+  const explorerLink = last ? getEtherscanLink(chainId, last.response.hash, 'transaction') : undefined
+  const inputAmount = ethers.utils.bigNumberify(order.inputAmount !== "0" ? order.inputAmount : order.creationAmount)
+  const minReturn = ethers.utils.bigNumberify(order.minReturn)
+
+  const rateFromTo = getExchangeRate(inputAmount, fromDecimals, minReturn, toDecimals, false)
+  const rateToFrom = getExchangeRate(inputAmount, fromDecimals, minReturn, toDecimals, true)
 
   return (
     <Order className="order">
       <div className="tokens">
         <CurrencySelect selected={true}>
           <Aligner>
-            {<TokenLogo address={fromToken} />}
+            {<TokenLogo address={inputToken} />}
             {<StyledTokenName>{fromSymbol}</StyledTokenName>}
           </Aligner>
         </CurrencySelect>
@@ -914,26 +1023,29 @@ function OrderCard(props) {
         </Aligner>
         <CurrencySelect selected={true}>
           <Aligner>
-            {<TokenLogo address={toToken} />}
+            {<TokenLogo address={outputToken} />}
             {<StyledTokenName>{toSymbol}</StyledTokenName>}
           </Aligner>
         </CurrencySelect>
+        <Spacer/>
+        <CurrencySelect selected={true} disabled={canceling} onClick={() => onCancel(order, pending)}>
+          <CancelButton>
+            {canceling ? 'Cancelling ...' : t('cancel')}
+          </CancelButton>
+        </CurrencySelect>
       </div>
       <p>
-        {!pending ? (
-          <>
-            {`Amount: ${amountFormatter(ethers.utils.bigNumberify(order.amount), fromDecimals, 6)}`} {fromSymbol}
-          </>
-        ) : (
-          'Pending ...'
-        )}
+        {`Sell: ${amountFormatter(inputAmount, fromDecimals, 6)}`} {fromSymbol}
       </p>
       <p>
-        {`Min return: ${amountFormatter(ethers.utils.bigNumberify(order.minReturn), toDecimals, 6)}`} {toSymbol}
+        {`Receive: ${amountFormatter(minReturn, toDecimals, 6)}`} {toSymbol}
       </p>
-      <Button className="cta" disabled={canceling} onClick={() => onCancel(order, pending)}>
-        {canceling ? 'Cancelling ...' : t('cancel')}
-      </Button>
+      <p>
+        {`Rate: ${amountFormatter(rateFromTo, 18, 2)}`} {fromSymbol}/{toSymbol} - {amountFormatter(rateToFrom, 18, 2)} {toSymbol}/{fromSymbol}
+      </p>
+      <p>
+        { last && <a rel="noopener noreferrer" target="_blank" href={explorerLink}>Pending transaction...</a> }
+      </p>
     </Order>
   )
 }

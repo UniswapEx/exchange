@@ -65,7 +65,7 @@ export default function Header() {
             </Link>
           </Nod>
           <Link id="link" href="https://uniswapex.io">
-            <h1 id="title">UniswapEX</h1>
+            <h1 id="title">UniswapEX v2</h1>
           </Link>
         </Title>
       </HeaderElement>
