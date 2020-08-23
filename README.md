@@ -43,7 +43,6 @@ An order is composed by:
 | fromToken | Token used to buy. For ETH it is the E-address.                        |
 | toToken   | Token to be bought. For ETH it is the E-address.                       |
 | minReturn | Mininum amount of toToken to buy.                                      |
-| fee       | Amount in ETH (WEI) to pay for the relayer to execute the order.       |
 | owner     | Owner of the order                                                     |
 | witness   | Ephemeral address as salt used to avoid relayer-front-runner execution |
 
@@ -75,3 +74,6 @@ If you want to add your token reach out us.
 
 - [Discord](https://discord.gg/w6JVcrg)
 - [Telegram](https://t.me/UniswapEX)
+- [Twitter](https://twitter.com/uniswapex)
+
+Repo forked from [Uniswap](https://github.com/Uniswap/uniswap-frontend) repo
