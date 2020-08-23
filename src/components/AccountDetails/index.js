@@ -71,7 +71,6 @@ const AccountGroupingRow = styled.div`
 `
 
 const AccountSection = styled.div`
-  background-color: ${({ theme }) => theme.bg1};
   padding: 0rem 1rem;
   ${({ theme }) => theme.mediaWidth.upToMedium`padding: 0rem 1rem 1.5rem 1rem;`};
 `
@@ -171,6 +170,27 @@ const WalletAction = styled.button`
   }
 `
 
+const ChangeAction = styled.button`
+  font-size: 0.825rem;
+  font-weight: 400;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  font-size: 1rem;
+  color: #87c122;
+  height: 2rem;
+  border: 1px solid #87c122;
+  border-radius: 2.5rem;
+  background-color: #262626;
+  outline: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+`
+
 const MainWalletAction = styled(WalletAction)`
   color: ${({ theme }) => theme.primary1};
 `
@@ -256,14 +276,14 @@ export default function AccountDetails({ toggleWalletModal, ENSName, openOptions
                       Disconnect
                     </WalletAction>
                   )}
-                  <WalletAction
+                  <ChangeAction
                     style={{ fontSize: '.825rem', fontWeight: 400 }}
                     onClick={() => {
                       openOptions()
                     }}
                   >
                     Change
-                  </WalletAction>
+                  </ChangeAction>
                 </div>
               </AccountGroupingRow>
               <AccountGroupingRow id="web3-account-identifier-row">
