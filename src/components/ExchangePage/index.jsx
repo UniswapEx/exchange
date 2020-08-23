@@ -19,7 +19,7 @@ import Circle from '../../assets/images/circle.svg'
 import SVGClose from '../../assets/svg/SVGClose'
 import SVGDiv from '../../assets/svg/SVGDiv'
 import { amountFormatter } from '../../utils'
-import { useUniswapExContract } from '../../hooks'
+import { useUniswapExContract, useMulticallContract } from '../../hooks'
 import { Spinner } from '../../theme'
 import { useTokenDetails } from '../../contexts/Tokens'
 import {
@@ -34,8 +34,7 @@ import { useAddressBalance } from '../../contexts/Balances'
 import { useFetchAllBalances } from '../../contexts/AllBalances'
 import { useAddressAllowance } from '../../contexts/Allowances'
 import { useTradeExactIn } from '../../hooks/trade'
-import { LIMIT_ORDER_MODULE_ADDRESSES, ORDER_GRAPH, MULTICALL_ADDRESS } from '../../constants'
-import { aggregate } from '@makerdao/multicall'
+import { LIMIT_ORDER_MODULE_ADDRESSES, ORDER_GRAPH } from '../../constants'
 
 import './ExchangePage.css'
 
@@ -182,9 +181,9 @@ function saveOrder(account, orderData, chainId) {
 function getSavedOrders(account, chainId) {
   if (!account) return []
 
-  console.log("Loading saved orders from storage location", account, lsKey(LS_ORDERS, account, chainId))
+  console.log('Loading saved orders from storage location', account, lsKey(LS_ORDERS, account, chainId))
   const raw = ls.get(lsKey(LS_ORDERS, account, chainId))
-  return raw == null ? [] : raw
+  return raw == null ? [] : raw
 }
 
 // ///
@@ -418,10 +417,7 @@ function isEthOrder(order) {
 }
 
 function keyOfOrder(order) {
-  const moduleData = ethers.utils.defaultAbiCoder.encode(
-    ['address', 'uint256'],
-    [order.outputToken, order.minReturn]
-  )
+  const moduleData = ethers.utils.defaultAbiCoder.encode(['address', 'uint256'], [order.outputToken, order.minReturn])
 
   return ethers.utils.keccak256(
     ethers.utils.defaultAbiCoder.encode(
@@ -443,33 +439,26 @@ function vaultForOrder(order, uniswapEXContract) {
   return `0x${hash.slice(-40)}`
 }
 
-async function balancesOfOrders(orders, uniswapEXContract, chainId) {
-  const result = await aggregate(
-    orders.map((o, i) => {
+async function balancesOfOrders(orders, uniswapEXContract, multicallContract) {
+  const result = await multicallContract.aggregate(
+    orders.map(o => {
       if (!isEthOrder(o)) {
-        return {
-          target: o.inputToken,
-          call: ['balanceOf(address)(uint256)', vaultForOrder(o, uniswapEXContract)],
-          returns: [[i]]
-        }
+        return [
+          o.inputToken,
+          `0x70a08231${ethers.utils.defaultAbiCoder // balanceOf(address)
+            .encode(['address'], [vaultForOrder(o, uniswapEXContract)])
+            .replace('0x', '')}`
+        ]
       } else {
-        return {
-          target: uniswapEXContract.address,
-          call: ['ethDeposits(bytes32)(uint256)', keyOfOrder(o)],
-          returns: [[i]]
-        }
+        return [uniswapEXContract.address, `0xebd9c39c${keyOfOrder(o).replace('0x', '')}`] // ethDeposits(bytes32)
       }
-    }),
-    {
-      multicallAddress: MULTICALL_ADDRESS[chainId],
-      rpcUrl: process.env.REACT_APP_NETWORK_URL
-    }
+    })
   )
 
-  return result.results
+  return result.returnData
 }
 
-function useSavedOrders(account, chainId, uniswapEXContract, deps = []) {
+function useSavedOrders(account, chainId, uniswapEXContract, multicallContract, deps = []) {
   const [state, setState] = useState({ allOrders: [], openOrders: [] })
 
   useEffect(() => {
@@ -477,15 +466,17 @@ function useSavedOrders(account, chainId, uniswapEXContract, deps = []) {
     if (isAddress(account)) {
       const allOrders = getSavedOrders(account, chainId)
       console.log(`Loaded ${allOrders.length} orders from local storage`)
-      balancesOfOrders(allOrders, uniswapEXContract, chainId).then((amounts) => {
-        allOrders.map((o, i) => (o.inputAmount = amounts[i].toString()))
-        setState ({
-          allOrders: allOrders,
-          openOrders: allOrders.filter(o => o.inputAmount !== "0")
+      if (allOrders.length > 0) {
+        balancesOfOrders(allOrders, uniswapEXContract, multicallContract).then(amounts => {
+          allOrders.map((o, i) => (o.inputAmount = ethers.utils.bigNumberify(amounts[i]).toString()))
+          setState({
+            allOrders: allOrders,
+            openOrders: allOrders.filter(o => o.inputAmount !== '0')
+          })
         })
-      })
+      }
     }
-  // eslint-disable-next-line
+    // eslint-disable-next-line
   }, [...deps, account, chainId, uniswapEXContract])
 
   return state
@@ -501,7 +492,7 @@ export default function ExchangePage({ initialCurrency }) {
   const { independentValue, independentField, inputCurrency, outputCurrency, rateOp, inputRateValue } = swapState
 
   const uniswapEXContract = useUniswapExContract()
-
+  const multicallContract = useMulticallContract()
   const [inputError, setInputError] = useState()
 
   const loading = !account
@@ -510,15 +501,22 @@ export default function ExchangePage({ initialCurrency }) {
   const pendingCancelOrders = useAllPendingCancelOrders()
 
   // Get locally saved orders and the graph orders
-  const local = useSavedOrders(account, chainId, uniswapEXContract, [pendingOrders.length, pendingCancelOrders.length])
+  const local = useSavedOrders(account, chainId, uniswapEXContract, multicallContract, [
+    pendingOrders.length,
+    pendingCancelOrders.length
+  ])
   const graph = useGraphOrders(account, chainId)
 
   // Aggregate graph and local orders, local orders have priority
-  const allOrders = local.allOrders.concat(graph.allOrders.filter((o) => !(local.allOrders.find((c) => c.secret === o.secret))))
-  const openOrders = local.openOrders.concat(graph.openOrders.filter((o) => !(local.allOrders.find((c) => c.secret === o.secret))))
+  const allOrders = local.allOrders.concat(
+    graph.allOrders.filter(o => !local.allOrders.find(c => c.secret === o.secret))
+  )
+  const openOrders = local.openOrders.concat(
+    graph.openOrders.filter(o => !local.allOrders.find(c => c.secret === o.secret))
+  )
 
   // Define orders to show as openOrders + pending orders
-  const orders = openOrders.concat(allOrders.filter(o => pendingOrders.find((p) => p.secret === o.secret)))
+  const orders = openOrders.concat(allOrders.filter(o => pendingOrders.find(p => p.secret === o.secret)))
   // const orders = graph.openOrders.concat(knownOrders.filter(o => o && pendingOrders.indexOf(o) !== -1))
   const addTransaction = useTransactionAdder()
 
@@ -773,12 +771,12 @@ export default function ExchangePage({ initialCurrency }) {
         inputAmount: inputAmount.toString(),
         creationAmount: inputAmount.toString(),
         inputToken: fromCurrency.toLowerCase(),
-        id: "???",
+        id: '???',
         minReturn: minimumReturn.toString(),
         module: LIMIT_ORDER_MODULE_ADDRESSES[chainId].toLowerCase(),
         owner: account.toLowerCase(),
         secret: privateKey,
-        status: "open",
+        status: 'open',
         outputToken: toCurrency.toLowerCase(),
         witness: address.toLowerCase()
       }
@@ -790,19 +788,17 @@ export default function ExchangePage({ initialCurrency }) {
         res = await uniswapEXContract.depositEth(data, { value: inputAmount })
       } else {
         const provider = new ethers.providers.Web3Provider(library.provider)
-        res = await provider.getSigner().sendTransaction(
-          {
-            to: fromCurrency,
-            data: data
-          }
-        )
+        res = await provider.getSigner().sendTransaction({
+          to: fromCurrency,
+          data: data
+        })
       }
 
       if (res.hash) {
         addTransaction(res, { action: ACTION_PLACE_ORDER, order: order })
       }
     } catch (e) {
-      console.log("Error on place order", e.message)
+      console.log('Error on place order', e.message)
     }
   }
 
@@ -946,25 +942,26 @@ export default function ExchangePage({ initialCurrency }) {
         </div>
       )}
       <div>
-        {account && <>
-          <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
-          {loading && (
-            <>
-              <SpinnerWrapper src={Circle} alt="loader" /> Loading ...
-              <br />
-              <br />
-            </>
-          )}
-          {orders.length === 0 && !loading && <p>{t('noOpenOrders')}</p>}
-          {
-            <div>
-              {orders.map(order => (
-                <OrderCard key={order.witness} data={{ order: order }} />
-              ))}
-            </div>
-          }
+        {account && (
+          <>
+            <p className="orders-title">{`${t('Orders')} ${orders.length > 0 ? `(${orders.length})` : ''}`}</p>
+            {loading && (
+              <>
+                <SpinnerWrapper src={Circle} alt="loader" /> Loading ...
+                <br />
+                <br />
+              </>
+            )}
+            {orders.length === 0 && !loading && <p>{t('noOpenOrders')}</p>}
+            {
+              <div>
+                {orders.map(order => (
+                  <OrderCard key={order.witness} data={{ order: order }} />
+                ))}
+              </div>
+            }
           </>
-        }
+        )}
       </div>
     </>
   )
@@ -981,7 +978,7 @@ function OrderCard(props) {
 
   const { symbol: fromSymbol, decimals: fromDecimals } = useTokenDetails(inputToken)
   const { symbol: toSymbol, decimals: toDecimals } = useTokenDetails(outputToken)
-  const { state, last } = useOrderPendingState(order)
+  const { state, last } = useOrderPendingState(order)
 
   const canceling = state === ACTION_CANCEL_ORDER
   const pending = state === ACTION_PLACE_ORDER
@@ -994,16 +991,23 @@ function OrderCard(props) {
 
     const { module, inputToken, outputToken, minReturn, owner, witness } = order
     uniswapEXContract
-      .cancelOrder(module, inputToken, owner, witness, abiCoder.encode(['address', 'uint256'], [outputToken, minReturn]), {
-        gasLimit: pending ? 400000 : undefined
-      })
+      .cancelOrder(
+        module,
+        inputToken,
+        owner,
+        witness,
+        abiCoder.encode(['address', 'uint256'], [outputToken, minReturn]),
+        {
+          gasLimit: pending ? 400000 : undefined
+        }
+      )
       .then(response => {
         addTransaction(response, { action: ACTION_CANCEL_ORDER, order: order })
       })
   }
 
   const explorerLink = last ? getEtherscanLink(chainId, last.response.hash, 'transaction') : undefined
-  const inputAmount = ethers.utils.bigNumberify(order.inputAmount !== "0" ? order.inputAmount : order.creationAmount)
+  const inputAmount = ethers.utils.bigNumberify(order.inputAmount !== '0' ? order.inputAmount : order.creationAmount)
   const minReturn = ethers.utils.bigNumberify(order.minReturn)
 
   const rateFromTo = getExchangeRate(inputAmount, fromDecimals, minReturn, toDecimals, false)
@@ -1027,11 +1031,9 @@ function OrderCard(props) {
             {<StyledTokenName>{toSymbol}</StyledTokenName>}
           </Aligner>
         </CurrencySelect>
-        <Spacer/>
+        <Spacer />
         <CurrencySelect selected={true} disabled={canceling} onClick={() => onCancel(order, pending)}>
-          <CancelButton>
-            {canceling ? 'Cancelling ...' : t('cancel')}
-          </CancelButton>
+          <CancelButton>{canceling ? 'Cancelling ...' : t('cancel')}</CancelButton>
         </CurrencySelect>
       </div>
       <p>
@@ -1041,10 +1043,15 @@ function OrderCard(props) {
         {`Receive: ${amountFormatter(minReturn, toDecimals, 6)}`} {toSymbol}
       </p>
       <p>
-        {`Rate: ${amountFormatter(rateFromTo, 18, 2)}`} {fromSymbol}/{toSymbol} - {amountFormatter(rateToFrom, 18, 2)} {toSymbol}/{fromSymbol}
+        {`Rate: ${amountFormatter(rateFromTo, 18, 2)}`} {fromSymbol}/{toSymbol} - {amountFormatter(rateToFrom, 18, 2)}{' '}
+        {toSymbol}/{fromSymbol}
       </p>
       <p>
-        { last && <a rel="noopener noreferrer" target="_blank" href={explorerLink}>Pending transaction...</a> }
+        {last && (
+          <a rel="noopener noreferrer" target="_blank" href={explorerLink}>
+            Pending transaction...
+          </a>
+        )}
       </p>
     </Order>
   )

@@ -1,41 +1,86 @@
 {
-  "name": "uniswap-ex",
-  "version": "1.0.0",
-  "description": "Uniswap Order Exchange",
-  "main": "truffle-config.js",
-  "scripts": {
-    "test": "scripts/test.sh",
-    "postinstall": "cd webapp && npm install",
-    "prebuild": "rm -rf public",
-    "build": "cd webapp && npm run build",
-    "postbuild": "mkdir -p public && cp -r webapp/build/* public && rm -r webapp/build"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Agusx1211/uniswap-ex.git"
-  },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Agusx1211/uniswap-ex/issues"
-  },
-  "homepage": "https://github.com/Agusx1211/uniswap-ex#readme",
+  "name": "uniswapex",
+  "description": "Decentralized Limit Orders Exchange Protocol",
+  "version": "2.0.0",
+  "homepage": "https://uniswapex.io",
+  "private": true,
   "dependencies": {
-    "babel-plugin-transform-object-rest-spread": "^6.26.0",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
-    "babel-register": "^6.26.0",
-    "bn-chai": "^1.0.1",
-    "chai": "^4.1.2",
-    "chai-as-promised": "^7.1.1",
-    "chai-bignumber": "^3.0.0",
-    "ganache-cli": "^6.2.4",
-    "mocha": "^6.0.2",
+    "@ethersproject/constants": "^5.0.2",
+    "@ethersproject/contracts": "^5.0.2",
+    "@ethersproject/providers": "^5.0.5",
+    "@ethersproject/solidity": "^5.0.2",
+    "@ethersproject/units": "^5.0.2",
+    "@makerdao/multicall": "^0.10.0-rc.4",
+    "@reach/dialog": "^0.2.8",
+    "@reach/tooltip": "^0.2.0",
+    "@reduxjs/toolkit": "^1.4.0",
+    "@uniswap/sdk": "^1.0.0-beta.4",
+    "@web3-react/abstract-connector": "^6.0.7",
+    "@web3-react/core": "^6.1.1",
+    "@web3-react/fortmatic-connector": "^6.0.9",
+    "@web3-react/injected-connector": "^6.0.7",
+    "@web3-react/portis-connector": "^6.1.1",
+    "@web3-react/walletconnect-connector": "^6.1.4",
+    "@web3-react/walletlink-connector": "^6.1.1",
+    "copy-to-clipboard": "^3.2.0",
+    "escape-string-regexp": "^2.0.0",
+    "ethers": "^4.0.33",
+    "i18next": "^15.0.9",
+    "i18next-browser-languagedetector": "^3.0.1",
+    "i18next-xhr-backend": "^2.0.1",
+    "jazzicon": "^1.5.0",
+    "local-storage": "^2.0.0",
     "now": "^16.2.0",
-    "truffle": "^5.0.33",
-    "truffle-flattener": "^1.2.4"
+    "polished": "^3.3.2",
+    "react": "^16.8.6",
+    "react-device-detect": "^1.6.2",
+    "react-dom": "^16.8.6",
+    "react-feather": "^1.1.6",
+    "react-ga": "^2.5.7",
+    "react-i18next": "^10.7.0",
+    "react-redux": "^7.2.1",
+    "react-router-dom": "^5.0.0",
+    "react-scripts": "^3.0.1",
+    "react-spring": "^8.0.20",
+    "react-switch": "^5.0.1",
+    "rebass": "^4.0.7",
+    "redux-localstorage-simple": "^2.3.1",
+    "styled-components": "^4.2.0",
+    "uniswap-v2-sdk": "npm:@uniswap/sdk@^3.0.3-beta.1",
+    "web3": "^1.2.6",
+    "web3-react": "^5.0.4"
   },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject",
+    "lint:base": "yarn eslint './src/**/*.{js,jsx}'",
+    "format:base": "yarn prettier './src/**/*.{js,jsx,scss}'",
+    "fix:lint": "yarn lint:base --fix",
+    "fix:format": "yarn format:base --write",
+    "fix:all": "yarn fix:lint && yarn fix:format",
+    "check:lint": "yarn lint:base",
+    "check:format": "yarn format:base --check",
+    "check:all": "yarn check:lint && yarn check:format"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "license": "GPL-3.0-or-later",
   "devDependencies": {
-    "ethereumjs-util": "^6.1.0"
+    "prettier": "^1.17.0"
   }
 }
