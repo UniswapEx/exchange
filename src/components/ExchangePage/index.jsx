@@ -445,12 +445,12 @@ async function balancesOfOrders(orders, uniswapEXContract, multicallContract) {
       if (!isEthOrder(o)) {
         return [
           o.inputToken,
-          `0x70a08231${ethers.utils.defaultAbiCoder
+          `0x70a08231${ethers.utils.defaultAbiCoder // balanceOf(address)
             .encode(['address'], [vaultForOrder(o, uniswapEXContract)])
             .replace('0x', '')}`
         ]
       } else {
-        return [uniswapEXContract.address, `0xebd9c39c${keyOfOrder(o).replace('0x', '')}`]
+        return [uniswapEXContract.address, `0xebd9c39c${keyOfOrder(o).replace('0x', '')}`] // ethDeposits(bytes32)
       }
     })
   )
