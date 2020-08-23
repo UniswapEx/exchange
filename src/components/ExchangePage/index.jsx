@@ -388,11 +388,18 @@ async function fetchUserOrders(account, chainId) {
     body: JSON.stringify({ query, variables: { owner: account.toLowerCase() } })
   }).catch(console.error)
 
-  const { data } = await res.json()
-
-  return {
-    allOrders: [],
-    openOrders: data.orders
+  try {
+    const { data } = await res.json()
+    return {
+      allOrders: [],
+      openOrders: data.orders
+    }
+  } catch (e) {
+    console.warn("Error loading orders from TheGraph", e)
+    return {
+      allOrders: [],
+      openOrders: []
+    }
   }
 }
 
