@@ -3,6 +3,7 @@ import { useWeb3React } from '@web3-react/core'
 import { ChainId } from 'uniswap-v2-sdk'
 
 import { isAddress, getTokenName, getTokenSymbol, getTokenDecimals, safeAccess } from '../utils'
+import { DEFAULT_TOKENS_EXTRA } from './DefaultTokens'
 
 const NAME = 'name'
 const SYMBOL = 'symbol'
@@ -75,7 +76,7 @@ export default function Provider({ children }) {
     fetch(DEFAULT_TOKEN_LIST_URL)
       .then(res =>
         res.json().then(list => {
-          const tokenList = list.tokens.reduce(
+          const tokenList = list.tokens.concat(DEFAULT_TOKENS_EXTRA).reduce(
             (tokenMap, token) => {
               if (tokenMap[token.chainId][token.address] !== undefined) throw Error('Duplicate tokens.')
               return {
