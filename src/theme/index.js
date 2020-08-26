@@ -58,12 +58,12 @@ const theme = darkMode => ({
   charcoalBlack: darkMode ? '#F2F2F2' : '#404040',
   // blues
   zumthorBlue: darkMode ? '#262626' : '#eeffeb',
-  malibuGreen: darkMode ? '#87c122' : '#87c122',
-  royalGreen: darkMode ? '#87c122' : '#498227',
+  malibuGreen: darkMode ? '#87c122' : '#01796f',
+  royalGreen: darkMode ? '#87c122' : '#01796f',
   loadingBlue: darkMode ? '#e4f0ff' : '#e4f0ff',
 
   // purples
-  wisteriaPurple: darkMode ? '#87c122' : '#498227',
+  wisteriaPurple: darkMode ? '#87c122' : '#01796f',
   // reds
   salmonRed: '#FF6871',
   // orange
@@ -71,7 +71,7 @@ const theme = darkMode => ({
   // yellows
   warningYellow: '#FFE270',
   // pink
-  uniswapPink: darkMode ? '#87c122' : '#498227',
+  uniswapPink: darkMode ? '#87c122' : '#01796f',
   connectedGreen: '#27AE60',
 
   //specific

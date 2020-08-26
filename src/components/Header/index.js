@@ -60,12 +60,12 @@ export default function Header() {
           <Nod>
             <Link id="link" href="https://uniswapex.io">
               <span role="img" aria-label="unicorn">
-                🐉{'  '}
+              🌲{'  '}
               </span>
             </Link>
           </Nod>
           <Link id="link" href="https://uniswapex.io">
-            <h1 id="title">UniswapEX v2</h1>
+            <h1 id="title">Pine.finance</h1>
           </Link>
         </Title>
       </HeaderElement>
