@@ -2,4 +2,4 @@
 
 ### For v1 orders you can go to https://v1.uniswapex.io
 
-Pine.finance reppo is [here](https://github.com/pine-finance/pine-interface)
+Pine.finance repo is [here](https://github.com/pine-finance/pine-interface)
